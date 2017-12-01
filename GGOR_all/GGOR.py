@@ -10,14 +10,11 @@ Implement variable seepage (monthly??)
 document
 '''
 #%% IMPORTS
-ggor_path1 = '/Users/Theo/GRWMODELS/python/GGOR/tools'
-ggor_path2 = '/Users/Theo/GRWMODELS/python/modules/fdm'
+ggor_path = '../tools'
 
 import sys
-if not ggor_path1 in sys.path:
-    sys.path.insert(1, ggor_path1)
-if not ggor_path2 in sys.path:
-    sys.path.insert(1, ggor_path2)
+if not ggor_path in sys.path:
+    sys.path.insert(1, ggor_path)
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -26,13 +23,13 @@ import flopy.modflow as fm
 import flopy.utils.binaryfile as bf
 import pandas as pd
 import ggor_tools as gt
-import fdm_tools as ft
+from mfgrid import Grid
 #from importlib import reload
 
 peek = gt.peek
 #%% Read the GGOR database
 modelname  = 'GGOR_all'
-executable = '/Users/Theo/GRWMODELS/mfLab/trunk/bin/mf2005.mac'
+executable = '../bin/mfusg.mac'
 dbfFile    = "../WGP/AAN_GZK/AAN_GZK"
 meteoFile  = '../meteo/PE-00-08.txt'
 
@@ -69,7 +66,7 @@ print("FLOPY MODFLOW model: <<{}>>".format(modelname))
 
 xGr, yGr, zGr = gg.grid()
 LAYCBD = [1, 0]
-gr = ft.Grid(xGr, yGr, zGr, LAYCBD=LAYCBD)
+gr = Grid(xGr, yGr, zGr, LAYCBD=LAYCBD)
 
 #%% MODEL DATA and PARAMETER VALUES
 # Varying ditch level
