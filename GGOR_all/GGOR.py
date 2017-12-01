@@ -11,7 +11,7 @@ document
 '''
 #%% IMPORTS
 ggor_path = '../tools'
-
+import os
 import sys
 if not ggor_path in sys.path:
     sys.path.insert(1, ggor_path)
@@ -26,10 +26,15 @@ import ggor_tools as gt
 from mfgrid import Grid
 #from importlib import reload
 
-peek = gt.peek
+#peek = gt.peek
 #%% Read the GGOR database
 modelname  = 'GGOR_all'
-executable = '../bin/mfusg.mac'
+
+if os.name == 'posix':
+    executable = '../bin/mfusg.mac'
+else:
+    executable = '../bin/mfusg_64.exe'
+
 dbfFile    = "../WGP/AAN_GZK/AAN_GZK"
 meteoFile  = '../meteo/PE-00-08.txt'
 
@@ -72,6 +77,8 @@ gr = Grid(xGr, yGr, zGr, LAYCBD=LAYCBD)
 # Varying ditch level
 kh2, kv2, ss = 50., 20., 1e-5
 
+# A string looks up data in the database
+# a number uses this number for all parcels
 HK     = gg.set_data(['kh', kh2], gr.shape)
 VKA    = gg.set_data([  1.,  1.], gr.shape)
 SY     = gg.set_data(['sy','sy'], gr.shape)
@@ -125,8 +132,8 @@ wel = fm.ModflowWel(mf, stress_period_data=SEEP, ipakcb=53)
 rch = fm.ModflowRch(mf, nrchop=3, rech=RECH, ipakcb=53)
 evt = fm.ModflowEvt(mf, nevtop=3, evtr=EVTR, ipakcb=53)
 oc  = fm.ModflowOc( mf, stress_period_data=OC, compact=True)
-pcg = fm.ModflowPcg(mf, mxiter=200, iter1=200, hclose=0.001, rclose=0.001)
-
+#pcg = fm.ModflowPcg(mf, mxiter=200, iter1=200, hclose=0.001, rclose=0.001)
+sms = fm.ModflowSms(mf) #, mxiter=200, iter1=200, hclose=0.001, rclose=0.001)
 
 #%% Write the model input files and run MODFLOW
 mf.write_input()
