@@ -100,11 +100,13 @@ class GGOR_data(object):
         self.file = dbfFile
         self.data = read_data(dbfFile)
 
+        # if nmax is not None select the parcels to compute
         if not nmax is None:
-            if isinstance(nmax, int):
+            if isinstance(nmax, int): # if just the nmax is given
                 nmax = max(1, min(nmax, len(self.data)))
                 self.data = self.data.iloc[np.arange(nmax)]
             elif isinstance(nmax, (list, tuple, np.ndarray)):
+                # if parcel numbers are tiven explicitly
                 self.data = self.data.iloc(nmax)
                 if not (np.all(nmax>0) and np.all(nmax<len(self.data))):
                     raise ValueError("all values of nmax must be >0 and < len(data)")
@@ -121,10 +123,10 @@ class GGOR_data(object):
         # taken from defaults (see below for the defaults)
         # the defaults must be included in colDicts
         # and in defaults
-        n = len(self.data['AHN']) # number of rows
+        nparcel = len(self.data['AHN']) # number of rows in the databas
         for h in colDict.values():
             if not h in self.data.columns:
-                self.data[h] = defaults[h] * np.ones(n)
+                self.data[h] = defaults[h] * np.ones(nparcel)
 
 
     def plot(self, cols, **kwargs):
@@ -133,6 +135,18 @@ class GGOR_data(object):
 
 
     def compute_parcel_width(self, BMIN=5, BMAX=10000):
+        '''Add computed parcel width to the to dataFrame self.data
+
+        parameters
+        ----------
+            BMIN : float
+                minimum parcel width
+            BMAX : float
+                maximum parcel width
+                the final maximum parcel width will be that of the
+                widest parcel in the database, not the initial BMAX.
+                This will also be the width of the modflow model.
+        '''
         A     = np.asarray(self.data['A'])
         O     = np.asarray(self.data['O'])
         det   = O**2 - 16 * A # determinant
@@ -151,18 +165,20 @@ class GGOR_data(object):
 
 
     def get_bofek_data(self, dbfFile, BOFEK='BOFEK'):
-        '''adds columns to self.data by interpreting bofek code
-           parameters
-           ----------
-           excel: str
-               name of excel file with bofek codes
-               name of sheet in excelfile with bofek codes
+        '''Add columns 'kh', 'sy', 'st' and 'kv' to self.data dataFrame.
+
+       This is done by interpreting bofek codes.
+
+       parameters
+       ----------
+       excel: str
+           name of excel file with bofek codes
+           name of sheet in excelfile with bofek codes
         '''
         try:
             bofek = pd.read_excel(dbfFile + '.xls', sheetname=BOFEK, index_col='BOFEK')
         except:
             bofek = pd.read_excel(dbfFile + '.xlsx', sheetname=BOFEK, index_col='BOFEK')
-
 
         kh = dict(bofek['kh'])
         sy = dict(bofek['Sy'])
@@ -174,7 +190,7 @@ class GGOR_data(object):
         self.data['st'] = [st[i] for i in self.data['Bofek']]
         self.data['kv'] = [kv[i] for i in self.data['Bofek']]
 
-        # ToDO: implement verification that all parcels have obtained values.
+        # TODO: implement verification that all parcels have obtained values.
         # We continue only with the parcels that actually have legal property
         # values originating from the BOFEK codes.
 
@@ -185,13 +201,14 @@ class GGOR_data(object):
 
     def set_data(self, what, dims):
         '''Returns 3D array filled with data stored in self.data according to what.
+
         parameters
         ----------
-        what: list of str
-            names of columns in data from which layers in arrray are to be filled.
-            The number of layers equals len(what)
-        dims: tuple
-            tuple of which last value is number of columns)
+            what: list of str
+                names of columns in data from which layers in arrray are to be filled.
+                The number of layers equals len(what)
+            dims: tuple
+                tuple of which last value is number of columns)
         '''
         A = np.zeros((len(what), *dims[-2:]))
         for i, w in enumerate(what):
@@ -206,11 +223,11 @@ class GGOR_data(object):
         '''returns RIV dictionary for ditch in top layer
         parameters
         ----------
-        gr : fdm_tools.mfgrid.Grid
-            grid object
-        pe : ggor_tools.Meteo_data
-            precipitation and makkink evaportrans, which knows
-            what days are summer and what are winter
+            gr : fdm_tools.mfgrid.Grid
+                grid object
+            pe : ggor_tools.Meteo_data
+                precipitation and makkink evaportrans, which knows
+                what days are summer and what are winter
         '''
         iLay = 0
         wRIV = np.asarray(self.data['wi'] * self.data['wo']\
@@ -233,13 +250,14 @@ class GGOR_data(object):
 
     def set_GHB(self, gr, pe):
         '''returns GHB dictionary for dicht in top layer
-        parameters
-        ----------
-        gr : fdm_tools.mfgrid.Grid
-            grid object
-        pe : ggor_tools.Meteo_data
-            precipitation and makkink evaportrans, which knows
-            what days are summer and what are winter
+
+           parameters
+            ----------
+            gr : fdm_tools.mfgrid.Grid
+                grid object
+            pe : ggor_tools.Meteo_data
+                precipitation and makkink evaportrans, which knows
+                what days are summer and what are winter
         '''
         iLay = 0
         cond = ((gr.DZ[iLay, :, 0] * gr.dy) / self.data['wi'].values).reshape((gr.ny, 1))
@@ -260,20 +278,21 @@ class GGOR_data(object):
     def set_DRN(self, gr, IBOUND):
         '''return DRN dictionary
         Drains are the same during all stress periods, so only specify SP[0]
+
         parameters
         ----------
-        gr: fdm_tools.mfgrid.Grid
-            grid object
-        IBOUND : np.ndarray
-            the INBOUND array
-        z_drn : np.ndarray
-            drain elevation per parcel
-        c_drn : np.ndarray
-            drainage resistance per parcel
+            gr: fdm_tools.mfgrid.Grid
+                grid object
+            IBOUND : np.ndarray
+                the INBOUND array
+            z_drn : np.ndarray
+                drain elevation per parcel
+            c_drn : np.ndarray
+                drainage resistance per parcel
         returns
         -------
-        DRN : dict
-            drainage dictionary
+            DRN : dict
+                drainage dictionary
         '''
         lrc  = gr.LRC(gr.NOD[0][IBOUND[0] > 0])
         elev = (np.asarray(self.data['AHN'] - self.data['ddr'])[:, np.newaxis]\
@@ -287,14 +306,15 @@ class GGOR_data(object):
 
     def set_seepage(self, gr, NPER):
         '''Resturns seepage for GGOR model, i.e. in second aquifer
-           parameters
-           ----------
+
+        parameters
+        ----------
            gr : instance of mfgrid.Grid
                grid object that contains all the information on the modflow grid
            NPER: int
                number of stress periods of MODFLOW model
-           returns
-           -------
+        returns
+        -------
            WEL : dict
                dict holding [[L R C Q], [ ...]] for all cells and all stress
                periods, where stress period number is index of WEL
@@ -315,9 +335,10 @@ class GGOR_data(object):
     def set_ibound(self, gr):
         '''Returns IBOUND array using column 'b' to limit the active cells
         3D array filled with data stored in self.data according to what.
+
         parameters
         ----------
-        gr: flopy_tools.Grid object
+            gr: flopy_tools.Grid object
         '''
         IBOUND = np.ones(gr.shape, dtype=int)
         IBOUND[0]       = IBOUND_ids['Drn']
@@ -331,9 +352,10 @@ class GGOR_data(object):
 
 
     def grid(self, dx=1.0, d=0.01, D2=50):
-        '''Returns coordinates of grid
-           parameters
-           ----------
+        '''Return coordinates of the modflow grid.
+
+       parameters
+       ----------
            dx: float
                width of cells
            d : float
@@ -359,11 +381,12 @@ class GGOR_data(object):
 
 
 def read_data(dbfFile):
-    '''Returns pandas.DataFrame from a shapefile (its dbf).
+    '''Return pandas.DataFrame from a shapefile (its dbf).
+
     parameters
     ----------
-    dbfFile: str
-        basename of shapefile
+        dbfFile: str
+            basename of shapefile
     '''
     sf   = shapefile.Reader(dbfFile)
     data = pd.DataFrame(sf.records())
@@ -385,34 +408,38 @@ def read_data(dbfFile):
 
 def model_parcel_areas(gr, IBOUND):
     '''Return the model parcel area, for all parcels.
+
+    parameters
     ----------
-    gr: mfgrid.Grid object
-    IBOUND: ndarray
-        modflow's IBOUND array
+        gr: mfgrid.Grid object
+        IBOUND: ndarray
+            modflow's IBOUND array
     returns
     -------
-    Areas: ndarray
-        ndarray of the active cells in each row in the model
+        Areas: ndarray
+            ndarray of the active cells in each row in the model
     '''
     return (IBOUND[0] * gr.Area).sum(axis=1)
 
 
 def get_parcel_average_hds(HDS, IBOUND, gr):
     '''Return the parcel arveraged heads for all parcels and times.
+
     The problem to solve here is handling the inactive cells that make up
     a different part of each parcel. We make use of the Area of the cells
     and of IBOUND to ignore those cells that are inactive.
+
     parameters
     ----------
-    HDS : headfile object
-        obtained by reading the headfile produced by modflow.
-    IBOUND: ndarray
-        modflow's IBOUND array
-    gr: mfgrid.Grid object
+        HDS : headfile object
+            obtained by reading the headfile produced by modflow.
+        IBOUND: ndarray
+            modflow's IBOUND array
+        gr: mfgrid.Grid object
     returns
     -------
-    hds: ndarray
-        ndarray of heads of shape [nparcels, ntimes]
+        hds: ndarray
+            ndarray of heads of shape [nparcels, ntimes]
     '''
     hds = HDS.get_alldata(mflay=1, nodata=-999.99)
     hds[np.isnan(hds)] = 0.
@@ -437,15 +464,17 @@ class Meteo_data(object):
 
 
     def testdata(self, p=0.01):
-        '''turn self.data into a test set
-          The meteo data is changed to allow easy verification of the model.
-          The length is truncated
-          The evaporation is set to zero
-          The precipitation is initially zero and then switched to + and -
-          every 180 days.
-          The last 170
-           parameters
-           ----------
+        '''Turn self.data into a test set.
+
+        The meteo data is changed to allow easy verification of the model.
+        The length is truncated
+        The evaporation is set to zero
+        The precipitation is initially zero and then switched to + and -
+        every 180 days.
+        The last 170
+
+        parameters
+        ----------
            len : int
               length of the test set
         '''
@@ -464,33 +493,34 @@ class Meteo_data(object):
 
 
     def plot(self, **kwargs):
-        '''plots meteo'''
+        '''Plots meteo data.'''
         self.data.plot(**kwargs)
 
     @property
     def E(self):
-        '''Returns evapotranspiration in m/d as pd.series'''
+        '''Return evapotranspiration in m/d as pd.series.'''
         return self.data['E']
 
     @property
     def P(self):
-        '''Returns precipitation in m/d as pd.series'''
+        '''Return precipitation in m/d as pd.series.'''
         return self.data['P']
 
     @property
     def RCH(self):
-        '''Returns recharge as pd.series [m/d]'''
+        '''Return recharge as pd.series [m/d].'''
         return self.P - self.E
 
     @property
     def t(self):
-        '''Returns simtulation time in days since first time'''
+        '''Return simtulation time in days since first time.'''
         return np.asarray(
                 np.asarray(self.data.index - self.data.index[0], dtype='timedelta64[D]'),
                 dtype=float)
     @property
     def dt(self):
-        '''Resturns simulation time timesteps in days.
+        '''Resturn simulation time timesteps in days.
+
         Notice that a dt is given for every day, also the first day. It is
         assumed that the length of the first day equals that of the second.
         This way, also the recharge on the first day may be utilized in the
@@ -514,18 +544,19 @@ class Meteo_data(object):
         return len(self.data)
 
     def GXG(self, hds):
-        '''Returns the GXG of the hds
+        '''Return the GXG of the heads.
+
         parameters
         ----------
-        hds: ndarray
-            hds has [nparcels x ntimes]
+            hds: ndarray
+                hds has [nparcels x ntimes]
         returns
         -------
-        returns gxg_dict
-            index = int, hydrological year
-            values are (gxg, ghg, gvg)
-                each has the dates at from which to compute the GxG using the
-                original data
+            gxg_dict
+                index = int, hydrological year
+                values are (gxg, ghg, gvg)
+                    each has the dates at from which to compute the GxG using the
+                    original data
         '''
         # This is a Series that linkes datse to column index in hds
         It = pd.Series(range(len(self.data)), index=self.data.index)
@@ -568,9 +599,10 @@ class Meteo_data(object):
 
 
     def GXG_plot(self, hds, selection=None, nmax=5, **kwargs):
-        '''Plot GXG
-           parameters
-           ----------
+        '''Plot GXG.
+
+        parameters
+        ----------
            hds: ndarray
                hds has [nparcels x ntimes]
            selection : list
@@ -608,15 +640,17 @@ class Meteo_data(object):
         return GLG, GHG, GVG
 
     def plot_hydrological_year_boundaries(self, ax, ls='--', color='k', **kwargs):
-        '''plots the boundaries between hydrological years.
+        '''Plot the boundaries between hydrological years.
+
         Hydrological years run from April 1 to April 1
+
         parameters
         ----------
         ax : matplotlib.axes._subplots.AxesSubplot
             the axis on which to plot, must be specified !
         ls='--' : str
             linestyle to plot the boundaries
-        color='gray' : str
+        color: 'gray' : str
             color to plot the boundaries with
         '''
         start = self.data.index[0]
@@ -629,9 +663,10 @@ class Meteo_data(object):
 
 
     def HDS_plot(self, hds, selection=None, nmax=5, **kwargs):
-        '''Plot HDS
-           parameters
-           ----------
+        '''Plot HDS.
+
+       parameters
+       ----------
            hds: ndarray
                hds has [nparcels x ntimes]
            selection : list
@@ -679,16 +714,18 @@ def labels():
 
 
 def Q_byrow(CBB, lbl, kstpkper=None):
-    '''Return a flow item from budget file as an Nper, (Nlay * Nrow) array
-    such that the flows have ben summed rowwise over the columns, to get
-    row syms of the cell by cell flows.
+    '''Return a flow item from budget file as an Nper, (Nlay * Nrow) array.
+
+    This flow item is returnd such that the flows have ben summed rowwise
+    over the columns, to get row syms of the cell by cell flows.
+
     parameters
     ----------
-    CBB : CBB_budget_file object
-        from flopy.utils.CBB_budgetfile
-    kstpkaper : tuple (kstep, kper)
-    label: str
-        package label "CHD, STO, WEL, GHB, RIV, DRN, RCH, EVT, FFF, FRF, FLF
+        CBB : CBB_budget_file object
+            from flopy.utils.CBB_budgetfile
+        kstpkaper : tuple (kstep, kper)
+        label: str
+            package label "CHD, STO, WEL, GHB, RIV, DRN, RCH, EVT, FFF, FRF, FLF
     '''
 
     if not lbl in labels():
@@ -721,24 +758,25 @@ def Q_byrow(CBB, lbl, kstpkper=None):
 
 
 def watbal(CBB, IBOUND, gr, gg, index=None):
-    '''Returns budget data summed over all parcels in m/d for all layers
+    '''Return budget data summed over all parcels in m/d for all layers.
+
     parameters
     ----------
-    CBB: flopy.utils.binaryfile.CellBudgetFile
-    IBOUND: numpy.ndarray (of ints(
-        Modeflow's IBOUND array
-    gr: fdm_tools.mfgrid.Grid
-    gg: ggor_tools.GGOR_data>
-    index: pandas.tseries.index.DatetimeIndex
-        index for resulting DataFrame if None, then 1..N is used
+        CBB: flopy.utils.binaryfile.CellBudgetFile
+        IBOUND: numpy.ndarray (of ints(
+            Modeflow's IBOUND array
+        gr: fdm_tools.mfgrid.Grid
+        gg: ggor_tools.GGOR_data>
+        index: pandas.tseries.index.DatetimeIndex
+            index for resulting DataFrame if None, then 1..N is used
     returns
     -------
-    W1 : pandas.DataFrame
-        flow layer 1
-        the columns are the labels L1
-    W2 : pandas.DataFrame
-        flows layer 2
-        the columns are the Labels L2
+        W1 : pandas.DataFrame
+            flow layer 1
+            the columns are the labels L1
+        W2 : pandas.DataFrame
+            flows layer 2
+            the columns are the Labels L2
 
     Note thta labels must be adapted if new CBC packages are to be included
     @TO170823
@@ -778,20 +816,21 @@ def watbal(CBB, IBOUND, gr, gg, index=None):
 
 
 def plot_watbal(CBB, IBOUND, gr, gg, index=None, sharey=False, **kwargs):
-    '''plots the running water balance of the GGOR entire areain mm/d.
+    '''Plot the running water balance of the GGOR entire areain mm/d.
+
     parameters
     ----------
-    CBB: flopy.utils.binaryfile.CellBudgetFile
-    IBOUND: numpy.ndarray (of ints(
-        Modeflow's IBOUND array
-    gr: fdm_tools.mfgrid.Grid
-    gg: ggor_tools.GGOR_data>
-    index: pd.date_range
-        pandas date range corresponding to CBB.times
-        if not specified, then CBB.times is used
-    kwargs: dict
-        kwargs may contain ax object, otherwise the figure and ax are generated
-        here.
+        CBB: flopy.utils.binaryfile.CellBudgetFile
+        IBOUND: numpy.ndarray (of ints(
+            Modeflow's IBOUND array
+        gr: fdm_tools.mfgrid.Grid
+        gg: ggor_tools.GGOR_data>
+        index: pd.date_range
+            pandas date range corresponding to CBB.times
+            if not specified, then CBB.times is used
+        kwargs: dict
+            kwargs may contain ax object, otherwise the figure and ax are generated
+            here.
     '''
 
     if index is None:
@@ -844,22 +883,22 @@ def plot_watbal(CBB, IBOUND, gr, gg, index=None, sharey=False, **kwargs):
     ax[1].legend(loc='best', fontsize='xx-small')
 
 def lrc(xyz, xyzGr):
-    '''returns LRC indices (iL,iR, iC) of point (x, y, z)
+    '''Returns LRC indices (iL,iR, iC) of point (x, y, z).
+
     parameters:
     ----------
-    xyz = (x, y,z) coordinates of a point
-    xyzGr= (xGr, yG    lbls1 = {'RCH': 'PRECIP'
-            'EVT':  'EVT'
-            'WEL':  'SEEP (kwel)'
-            'DRN': 'DRN'
-            'RIV': '
-            'GHB':
-            'FLF':
-            'STO':}
-r, zGr) grid coordinates
+        xyz = (x, y,z) coordinates of a point
+        xyzGr= (xGr, yG    lbls1 = {'RCH': 'PRECIP'
+                'EVT':  'EVT'
+                'WEL':  'SEEP (kwel)'
+                'DRN': 'DRN'
+                'RIV': '
+                'GHB':
+                'FLF':
+                'STO':}
     returns:
     --------
-    idx=(iL, iR, iC) indices of point (x, y, z)
+        idx=(iL, iR, iC) indices of point (x, y, z)
     '''
     LRC = list()
     for x, xGr in zip(xyz, xyzGr):
@@ -873,7 +912,7 @@ r, zGr) grid coordinates
 def peek(file, vartype=np.int32, shape=(1), charlen=16, skip_bytes=0):
     """
     Uses numpy to read from binary file.  This was found to be faster than the
-        struct approach and is used as the default.
+    struct approach and is used as the default.
 
     """
     here = file.tell()
@@ -897,11 +936,14 @@ def peek(file, vartype=np.int32, shape=(1), charlen=16, skip_bytes=0):
     return result
 
 def get_reclen_bytes(binary_filename): # TO 170702
-    """
-    Check if binary file has a compiler dependent binary record length inclucded
-    before and after each (fortran) written record.
+    """Check if binary file has a compiler dependent binary record length.
+
+    Such record length bytes are sometimes written to binary files dependent
+    on the Fortran compiler that was used to compile MODFLOW.
+
     The copiler used by USGS does not include such bytes, but the gfortran
     compiler used to compile USGS source on Mac and UNIX does.
+
     TO 170702
     """
     reclen_bytes = np.int32(1).nbytes
@@ -916,15 +958,16 @@ def get_reclen_bytes(binary_filename): # TO 170702
 
 
 def filter_recbytes(fin, fout=None, vartype=np.int32):
-    '''copies the containts of binary file fin to output file with record-length bytes removed
+    '''Copy binary file to output file wit record-length bytes removed.
+
     parameters
     ----------
-    fin : str
-        name of binary input file
-    out: str
-        name of binary output file, default is fname + '_out' + ext
-    vartype : np.type that matches the length of the record length bytes
-        default np.int32
+        fin : str
+            name of binary input file
+        out: str
+            name of binary output file, default is fname + '_out' + ext
+        vartype : np.type that matches the length of the record length bytes
+            default np.int32
     '''
     fi = open(fin , 'rb')
 
