@@ -26,6 +26,10 @@ import ggor_tools as gt
 from mfgrid import Grid
 #from importlib import reload
 
+#%% === maximum number of parcels to compute
+
+nmax = 15
+
 #peek = gt.peek
 #%% Read the GGOR database
 modelname  = 'GGOR_all'
@@ -38,7 +42,7 @@ else:
 dbfFile    = "../WGP/AAN_GZK/AAN_GZK"
 meteoFile  = '../meteo/PE-00-08.txt'
 
-gg = gt.GGOR_data(dbfFile, nmax=15)
+gg = gt.GGOR_data(dbfFile, nmax=nmax)
 pe = gt.Meteo_data(meteoFile)
 
 test=False
@@ -109,9 +113,7 @@ GHB  = gg.set_GHB(gr, pe)
 RIV  = gg.set_RIV(gr, pe)
 DRN  = gg.set_DRN(gr, IBOUND)
 SEEP = gg.set_seepage(gr, NPER)
-OC   = {(0, 0): ['save head',
-               'save budget',
-               'print budget']}
+OC   = {(0, 0): ['save head', 'save budget', 'print budget'] for i in range(NPER)}
 
 
 #%% MODEL AND packages ADDED TO IT
