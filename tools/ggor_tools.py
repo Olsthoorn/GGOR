@@ -75,6 +75,8 @@ IBOUND_ids = {'Inactive': 0,
 
 
 class GGOR_data(object):
+    '''This class instantiates defines a GGOR data object starting from a
+    shapefile or its dbf file,'''
 
     def __init__(self, dbfFile, BMIN=5., BMAX=1000., LAYCBD=0, w=1.0, nmax=None):
         '''
@@ -389,7 +391,8 @@ def read_data(dbfFile):
             basename of shapefile
     '''
     sf   = shapefile.Reader(dbfFile)
-    data = pd.DataFrame(sf.records())
+    records = [y[:] for y in sf.records()] # turns records into list
+    data = pd.DataFrame(data=records, columns=[c[0] for c in sf.fields[1:]])
     hdr  = [f[0] for f in sf.fields[1:]]
     data.columns = hdr
     tp   = [t[1] for t in sf.fields[1:]]
@@ -1016,15 +1019,15 @@ def filter_recbytes(fin, fout=None, vartype=np.int32):
 
 if __name__ == '__main__':
 
-    test=True
-
-    fig1, ax1 = plt.subplots()
-    ax1.set_title("AHN")
-    ax1.set_xlabel("parcel Nr")
-    ax1.set_ylabel("m +NAP")
+    test=False
 
     dbfFile = "../WGP/AAN_GZK/AAN_GZK"
     gg= GGOR_data(dbfFile)
+
+    fig1, ax1 = plt.subplots()
+    ax1.set_title("AHN (in fact elevation [m+MSL])")
+    ax1.set_xlabel("parcel Nr")
+    ax1.set_ylabel("m +NAP")
     gg.plot(['AHN'], ax=ax1)
 
     fig2, ax2 = plt.subplots()
@@ -1037,4 +1040,10 @@ if __name__ == '__main__':
     if test==True:
         pe.testdata()
     pe.plot(ax=ax2)
+
+# gg.data is the DataFrame holding the dbf contents
+    print("Length of database: ", len(gg.data))
+    print("Headings: ")
+    print(','.join(gg.data.columns))
+
 
