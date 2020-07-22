@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Analytic computation of head in multi aquiers of cross section between x=0
-and x=b, where dphi/dx = 0 at x=0 and phi is fixed beyond the ditch resistance
-at x=b. Teh multi-aquifer system has nLay aquifers and nLay aquitards, one
-between each pair of aquifers, one at the top of the upper aquier and one
-below the bottom aquifer.
+Analytic computation of head in multi aquifers in a cross section between x=0
+and x=b, where at x = 0, dphi/dx = 0 and at x = b, phi is fixed beyond the
+hydraulic resistance of the ditch. The multi-aquifer system has nLay aquifers
+and nLay aquitards, one aquitard between each pair of aquifers and one at the
+top of the upper aquier and also one below the bottom aquifer.
 
 Each aquifer has a hydraulic resistance at x=b. Outside x=b, the head is fixed.
 The head is also fixed above the top aquitard and below the bottom aquitard.
