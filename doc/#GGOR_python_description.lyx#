@@ -5046,6 +5046,101 @@ r) en numerieke methode (eindige differenties, fdm2t).
 
 \end_layout
 
+\begin_layout Chapter*
+Numerieke aanpak met MODFLOW
+\end_layout
+
+\begin_layout Standard
+In het numerieke model (MODFLOW2005), wordt elk perceel afgebeeld in een
+ modelrij.
+ Door de horizontale anisotropie op een zeer lage waarde te zetten 
+\begin_inset Formula $c_{ani}=1\times10^{-20}$
+\end_inset
+
+ is er feitelijk geen contact of wateruitwisseling mogelijk tussen de rijen
+ (percelen) in het model.
+ De breedte van elke modelrij is 
+\begin_inset Formula $dy=1.0$
+\end_inset
+
+ m, zodat we de resultaten direct kunnen opvatten als een verticale doorsnede
+ door elk van de percelen.
+ De breedte van het model is die van het perceel met de grootste breedte
+ (uit de perceelgegevens) naar boven afgerond op een heel aantal keer de
+ opgegeven celbreedte 
+\begin_inset Formula $dx$
+\end_inset
+
+ die doorgaans op 1 m wordt gesteld, maar in principe variabel is.
+ Daar de halve perceelbreedte 
+\begin_inset Formula $b$
+\end_inset
+
+ exclusief de perceelsloot is, stelt de meest linker kolom van het modflow
+ model de grond naast de sloot voor.
+\end_layout
+
+\begin_layout Standard
+Het model bestaat uit een bovenlaag, de deklaag, en een regionale aquifer
+ met daartussen een weerstandbiedende laag.
+ De dikte van deze weerstandbiedende laag, die vaak de rol van het basisveen
+ zal spelen wordt gelijk aan 
+\begin_inset Formula $dz=0.1$
+\end_inset
+
+ m gekozen.
+ De dikte van de regionale aquifer wordt om praktische redenen gelijk genomen
+ aan 
+\begin_inset Formula $D=30$
+\end_inset
+
+ m.
+ De dikte van de deklaag 
+\begin_inset Formula $D_{d}$
+\end_inset
+
+ is altijd gegeven en daarom in de perceeldata als kolom aanwezig.
+\end_layout
+
+\begin_layout Standard
+Voor de horizontale doorlatendheid 
+\begin_inset Formula $k_{h}$
+\end_inset
+
+, de verticale doorlatendheid 
+\begin_inset Formula $k_{v}$
+\end_inset
+
+ en de freatische bergingscoëfficiënt 
+\begin_inset Formula $S_{y}$
+\end_inset
+
+ worden de waarden van de Bodem-Fysische Eenheden Kaart 2012, de zogenoemde
+ BOFEK-waarden genomen, behorende tot het type bodem waartoe het perceel
+ wordt gerekend, uitgedrukt in zijn opgegeven BOFEK-code (zie bijlage 3
+ in 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "BOFEK12"
+literal "false"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
+Dit vergt toch nog een vertaling naar waarden in het model.
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Section
+Het netwerk
+\end_layout
+
 \begin_layout Section
 Conclusie
 \end_layout
@@ -5157,6 +5252,69 @@ Met de meerlagenoplossing kan ook de dynamiek van de regionale aquifer kan
 \end_inset
 
 
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label "Wösten et al (2013)"
+key "BOFEK12"
+literal "false"
+
+\end_inset
+
+ Henk Wösten
+\begin_inset Formula $^{1}$
+\end_inset
+
+, Folkert de Vries
+\begin_inset Formula $^{1}$
+\end_inset
+
+, Tom Hoogland
+\begin_inset Formula $^{1}$
+\end_inset
+
+, Harry Massop
+\begin_inset Formula $^{1}$
+\end_inset
+
+, Ab Veldhuizen
+\begin_inset Formula $^{1}$
+\end_inset
+
+, Henk Vroon
+\begin_inset Formula $^{1}$
+\end_inset
+
+, Jan Wesseling
+\begin_inset Formula $^{1}$
+\end_inset
+
+, Joost Heijkers
+\begin_inset Formula $^{2}$
+\end_inset
+
+ en Almer Bolman
+\begin_inset Formula $^{3}$
+\end_inset
+
+ (2013) BOFEK2012, de nieuwe, bodemfysische schematisatie van Nederland.
+ Alterrarapport 2387.
+ Alterra Wageningen UR.
+ 
+\begin_inset Formula $^{1}$
+\end_inset
+
+ Alterra, 
+\begin_inset Formula $^{2}$
+\end_inset
+
+Hoogheemraadschap de Stichtse Rijnlanden, 
+\begin_inset Formula $^{3}$
+\end_inset
+
+Waterschap Vallei en Eem.
 \end_layout
 
 \end_body

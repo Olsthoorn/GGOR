@@ -1,5 +1,7 @@
-"""
-@TO 20200603
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""Implement modflow simulation of one GGOR cross section.
+
 This file generates a GGOR model voor a single parcel using the same data
 and input as the analytical model in ggor_analytical.py. This is to compare
 the results of the analytical and the numerical model.
@@ -7,18 +9,14 @@ the results of the analytical and the numerical model.
 Hence, the data setting the properties of the analytical model and its meteo is
 used to set up the numerical model
 
-
 TODO: as per 170825
-
-Implement RIV (different in and ex filtration resistance)
-verify with analytical solution
-implement ditches that penetrate through the cover layer
-implement DRN (surface runoff)
-implement greppels
-implement ditch shape
-Implement variable seepage (monthly??)
-document
+    verify with analytical solution
+    implement greppels
+    implement ditch shape
+    document
+@TO 2020-06-03
 """
+
 #%% IMPORTS
 import os
 import sys
@@ -31,7 +29,7 @@ import flopy.utils.binaryfile as bf
 import pandas as pd
 from fdm.mfgrid import Grid
 from GGOR.src.analytic.ggor_analytical import props, gen_testdata, set_hLR, newfig2, plot_heads
-import pdb
+#import pdb
 
 print('sys version {}'.format(sys.version))
 print('numpy version {}'.format(np.__version__))
@@ -480,7 +478,6 @@ def modflow(props=None, data=None):
     hds = HDS.get_alldata()
 
     # Get the nper and nlay
-    nper = hds.shape[0]
     nlay = hds.shape[1]
 
     # dA for properly averaging the head when dx is not uniform
@@ -504,8 +501,8 @@ def modflow(props=None, data=None):
     return pd.concat([data, WB], axis=1)
 #%% Read the GGOR database
 
-def plot(data, titles=None, xlabel='time', ylabels=['m', 'm/d', 'm/d'], size_inches=None, sharex=True):
-
+def plot_head_watbal(data, titles=None, xlabel='time', ylabels=['m', 'm/d', 'm/d'], size_inches=None, sharex=True):
+    """Plot the heads and water balance."""
     fig, ax = plt.subplots(3, sharex=sharex)
     fig.set_size_inches(size_inches)
     for a, title, ylabel in zip(ax, titles, ylabels):
@@ -518,7 +515,7 @@ def plot(data, titles=None, xlabel='time', ylabels=['m', 'm/d', 'm/d'], size_inc
     plot_watbal(ax=ax[1:], data=data, titles=titles[1:], xlabel=xlabel, ylabels=ylabels[1:])
     return ax
 
-
+#%%
 if __name__ == '__main__':
 
     data = knmi.get_weather(stn=240, start='20100101', end='20191231')
@@ -535,7 +532,4 @@ if __name__ == '__main__':
 
     #% Plot water balance
     ax = newfig2(['Water balance layer 0', 'Waber balance layer 1'], 'time', ['m/d', 'm/d'], size_inches=(12, 12), sharey=True)
-
-    fig.ax
-
     plot_watbal(data=results_df, ax=ax)
