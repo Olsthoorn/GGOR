@@ -673,10 +673,17 @@ class GGOR_data:
         else:
             raise KeyError('These keys [{}] in data are not in bofek.index'.format(', '.join(dindex)))
 
-        self.data['kh'] = np.array([bofek['kh'].loc[i] for i in self.data['bofek']])
-        self.data['sy'] = np.array([bofek['Sy'].loc[i] for i in self.data['bofek']])
-        #self.data['st'] = np.array([bofek['staring'].loc[i] for i in self.data['bofek']])
-        self.data['kv'] = np.array([bofek['ksat_cmpd'].loc[i] / 100. for i in self.data['bofek']])
+        if bofek in self.data.columns:
+            self.data['kh'] = np.array([bofek['kh'].loc[i] for i in self.data['bofek']])
+            self.data['sy'] = np.array([bofek['Sy'].loc[i] for i in self.data['bofek']])
+            #self.data['st'] = np.array([bofek['staring'].loc[i] for i in self.data['bofek']])
+            self.data['kv'] = np.array([bofek['ksat_cmpd'].loc[i] / 100. for i in self.data['bofek']])
+        else:
+            missing = set(['kh', 'sy', 'kv']).difference(self.data.columns)
+            if len(missing) > 0:
+                raise ValueError(
+                    "If 'bofek' not in database, columns [{}] must be prseent."
+                                                .format(', '.join(missing)))
 
 
     def apply_defaults(self, defaults=None):
