@@ -410,6 +410,7 @@ def get_drain_elev_with_trenches(parcel_data=None, gr=None):
             Ltr = 2 * b / (int(ntr) + 1) # dist. betw. trenches or trench and ditch
             xtr = Ltr * np.floor(np.arange(1, ntr / 2 + 1)) # trench locs x <= b
             Itr = np.asarray(np.interp(xtr, y, x), dtype=int) # column indices
+            Itr[Itr >= gr.nx] = gr.nx - 1
             htr[:]   = ahn          # default --> ground surface
             htr[Itr] = ahn - dtr    # trench  --> ground surface - trench depth
     return elev
@@ -592,20 +593,10 @@ class GGOR_data:
 
         ditch_omega1  [m] is half the width of the ditch plus its wetted sided.
         ditch_omega2 [m] ia the same for the regional aquifer.
+
+        calls normal function to allow using it with test data
         """
-        #Omega for the cover layer
-        hLR  =  0.5 * (self.data['h_winter'] + self.data['h_winter'])
-        zditch_bottom  = self.data['AHN'] - self.data['d_ditch']
-        zdeklg_bottom  = self.data['AHN'] - self.data['D1']
-        b_effective =np.fmax(0,
-                np.fmin(zditch_bottom - zdeklg_bottom, self.data['b_ditch']))
-        self.data['ditch_omega1'] = b_effective + (hLR - zditch_bottom)
-
-        # Omega for the regional aquifer
-        zaquif_top     = self.data['AHN'] - self.data['D1'] - self.data['D_CB']
-        self.data['ditch_omega2'] = (self.data['b_ditch'] +
-            (zaquif_top - zditch_bottom)) * (zaquif_top - zditch_bottom >= 0)
-
+        compute_and_set_omega(self.data)
 
     def compute_parcel_width(self, BMINMAX=(5., 10000.)):
         """Add computed parcel width to the to dataFrame self.data.
@@ -699,6 +690,33 @@ class GGOR_data:
         defcols = set(defaults.keys()).difference(self.data.columns)
         for dc in defcols: # only for the missing columns
             self.data[dc] = defaults[dc]
+
+def compute_and_set_omega(data=None):
+    """Compute and set the half wetted ditch circumference in the two model layers.
+
+    ditch_omega1  [m] is half the width of the ditch plus its wetted sided.
+    ditch_omega2 [m] ia the same for the regional aquifer.
+
+    Fields are added in place.
+
+    Parameters
+    ----------
+    data: pd.DataFrame
+        the parcel data
+    """
+    #Omega for the cover layer
+    hLR  =  0.5 * (data['h_winter'] + data['h_winter'])
+    zditch_bottom  = data['AHN'] - data['d_ditch']
+    zdeklg_bottom  = data['AHN'] - data['D1']
+    b_effective =np.fmax(0,
+            np.fmin(zditch_bottom - zdeklg_bottom, data['b_ditch']))
+    data['ditch_omega1'] = b_effective + (hLR - zditch_bottom)
+
+    # Omega for the regional aquifer
+    zaquif_top     = data['AHN'] - data['D1'] - data['D_CB']
+    data['ditch_omega2'] = (data['b_ditch'] +
+        (zaquif_top - zditch_bottom)) * (zaquif_top - zditch_bottom >= 0)
+
 
 
 def data_from_dbffile(dbfpath):
@@ -811,76 +829,104 @@ def get_parcel_average_hds(HDS=None, IBOUND=None, gr=None):
 
 #55 Meteo data
 
-def plot_heads(ax=None, avgHds=None, time_data=None, parcel_data=None, selection=[0, 1, 2, 3, 4],
-               titles=None, xlabel='time', ylabels=['m', 'm'],
-           size_inches=(14, 8), loc='best',  **kwargs):
-    """Plot the running heads in both layers.
+class Heads_obj:
+    """Heads object, to store and plot head data."""
 
-    Parameters
-    ----------
-    ax: plt.Axies
-        Axes to plot on.
-    avHds: nd_array (nParcel, nTime)
-        The parcel-cross-section averaged heads
-    time_data: pd.DataFrame with columns 'RH', 'EVT24 and 'summer'
-        time datacorresponding to the avgHds data
-    parcel_data: pd.DataFrame
-        parcel properties data (used to generate labels)
-    selection: sequence of ints (tuple, list), none is all parcels.
-        The parcel id's to show in the graph.
-    title: str
-        The title of the chart.
-    xlabel: str
-        The xlabel
-    ylabel: str
-        The ylabel of th chart.
-    size_inches: tuple of two
-        Width and height om image in inches if image is generated and ax is None.
-    loc: str (default 'best')
-        location to put the legend
-    kwargs: Dict
-        Extra parameters passed to newfig or newfig2 if present.
+    def __init__(self, dirs, IBOUND=None, gr=None):
+        """Return Heads_obj.
 
-    Returns
-    -------
-    The one or two plt.Axes`ax
-    """
-    if not selection:
-        selection = np.arange(len(parcel_data), dtype=int)
-    elif np.isscalar(selection):
-        selection = int(selection), # a 1-tuple
+        Paeameters
+        ----------
+        dirs: Dir_struct object
+            GGOR directory structure
+        IBOUND: ndarray of gr.shape
+            Modflow's boundary array
+        gr: fdm.mfgrid.Grid object
+            holds the Modflow grid.
+        """
+        self.gr = gr
 
-    if ax is None:
-        ax = newfig2(titles, xlabel, ylabels, size_inches=size_inches, **kwargs)
-    else:
-        for a, title, ylabel in ax, titles, ylabels:
-            a.grid(True)
-            a.set_title(title)
-            a.set_xlabel(xlabel)
-            a.set_ylabel(ylabel)
+        #% Get the modflow-computed heads
+        hds_file = os.path.join(dirs.case_results, case +'.hds')
+        print("\nReading binary head file '{}' ...".format(hds_file))
+        self.HDS = bf.HeadFile(hds_file)
 
-    nt, nLay, ny = avgHds.shape
+        self.avgHds = get_parcel_average_hds(self.HDS,
+                                             IBOUND=par['IBOUND'], gr=self.gr)
+        self.GXG    = GXG_object(time_data=meteo_data, avgHds=self.avgHds)
 
-    clrs = 'brgkmcy'
-    lw = 1
-    for ilay, a in zip(range(nLay), ax):
-        for iclr, isel in enumerate(selection):
-            clr = clrs[iclr % len(clrs)]
-            a.plot(time_data.index, avgHds[:, ilay, isel], clr, ls='solid',
-                         lw=lw, label="parcel {}, iLay={}".format(isel, ilay))
-            if ilay == 0:
-                hDr = (parcel_data['AHN'] - parcel_data['d_drain']
-                                       ).loc[isel] * np.ones(len(time_data))
-                hLR = parcel_data['h_winter' ].loc[isel] * np.ones(len(time_data))
-                hLR[time_data['summer']] = parcel_data['h_winter'].loc[isel]
 
-                a.plot(time_data.index, hLR, clr, ls='dashed', lw=lw,
-                       label='parcel {}, hLR'.format(isel))
-                a.plot(time_data.index, hDr, clr, ls='dashdot', lw=lw,
-                       label='parcel {}, zdr'.format(isel))
-        a.legend(loc=loc)
+    def plot(self, ax=None, time_data=None, parcel_data=None,
+                   selection=[0, 1, 2, 3, 4],
+                   titles=None, xlabel='time', ylabels=['m', 'm'],
+                   size_inches=(14, 8), loc='best',  **kwargs):
+        """Plot the running heads in both layers.
 
-    return ax
+        Parameters
+        ----------
+        ax: plt.Axies
+            Axes to plot on.
+        time_data: pd.DataFrame with columns 'RH', 'EVT24 and 'summer'
+            time datacorresponding to the avgHds data
+        parcel_data: pd.DataFrame
+            parcel properties data (used to generate labels)
+        selection: sequence of ints (tuple, list).
+            None is all parcels.
+            The parcel nrs to show in the graph.
+        titles: str
+            The titles of the charts.
+        xlabel: str
+            The xlabel
+        ylabels: str
+            The ylabels of the 2 charts.
+        size_inches: tuple of two
+            Width and height om image in inches if image is generated and ax is None.
+        loc: str (default 'best')
+            location to put the legend
+        kwargs: Dict
+            Extra parameters passed to newfig or newfig2 if present.
+
+        Returns
+        -------
+        The one or two plt.Axes`ax
+        """
+        if np.isscalar(selection): selection = [selection]
+
+        if ax is None:
+            ax = newfig2(titles, xlabel, ylabels, size_inches=size_inches, **kwargs)
+            for a in ax:
+                plot_hydrological_year_boundaries(a, time_data.index)
+        else:
+            for a, title, ylabel in ax, titles, ylabels:
+                a.grid(True)
+                a.set_title(title)
+                a.set_xlabel(xlabel)
+                a.set_ylabel(ylabel)
+
+        nt, nLay, ny = self.avgHds.shape
+
+        clrs = 'brgkmcy'
+        lw = 1
+        for ilay, a in zip(range(nLay), ax):
+            for iclr, isel in enumerate(selection):
+                clr = clrs[iclr % len(clrs)]
+                a.plot(time_data.index, self.avgHds[:, ilay, isel], clr, ls='solid',
+                             lw=lw, label="parcel {}".format(isel))
+                if ilay == 0:
+                    hDr = (parcel_data['AHN'] - parcel_data['d_drain']
+                                           ).loc[isel] * np.ones(len(time_data))
+                    hLR = parcel_data['h_winter' ].loc[isel] * np.ones(len(time_data))
+                    hLR[time_data['summer']] = parcel_data['h_winter'].loc[isel]
+
+                    a.plot(time_data.index, hLR, clr, ls='dashed', lw=lw,
+                           label='parcel {}, hLR'.format(isel))
+                    a.plot(time_data.index, hDr, clr, ls='dashdot', lw=lw,
+                           label='parcel {}, zdr'.format(isel))
+            a.legend(loc=loc)
+
+            self.GXG.plot(ax[0], selection=selection)
+
+        return ax
 
 
 def plot_hydrological_year_boundaries(ax=None, tindex=None):
@@ -1005,7 +1051,7 @@ class GXG_object:
         nmax: int
             maximum number of graphs to plot
         """
-        if np.isscalar(selection): int(selection),
+        if np.isscalar(selection): selection = [selection]
 
         clrs = 'brgkmcy'
 
@@ -1037,16 +1083,16 @@ class GXG_object:
         return ax
 
 
-def show_locations(lbl=None, CBC=None, iper=0, size_inches=(10,8.5)):
-    """Show the location of the noeds in recarray given CBC data.
+def show_locations(lbls=None, CBC=None, iper=0, size_inches=(10,8.5)):
+    """Show the location of the nodes in recarray given CBC data.
 
     The refers to ['WEL', 'DRN', 'GHB', 'RIV', 'CHD'] for which the data
     from the CB files are returned as recarrays with fields 'node' and 'q'
 
     Parameters
     ----------
-    lbl: str
-        one of ['WEL', 'DRN', 'GHB', 'RIV', 'CHD']
+    lbls: list, tuple
+        one or more of ['WEL', 'DRN', 'GHB', 'RIV', 'CHD']
     CBC: open file handle
         CBC file handle
     iper: int
@@ -1058,166 +1104,187 @@ def show_locations(lbl=None, CBC=None, iper=0, size_inches=(10,8.5)):
     nodes = CBC.get_data(text=cbc_labels[lbl])[iper]['node'] - 1
     IB.ravel()[nodes] = 1
 
-    titles=['Top layer, lbl={}, iper={}'.format(lbl, iper),
-            'Bottom layer, lbl={}, iper={}'.format(lbl, iper)]
+    if lbls is None: lbls = ['WEL', 'DRN', 'GHB', 'RIV']
 
-    ax = newfig2(titles=titles, xlabel='column', ylabels=['row', 'row'],
-                 sharx=True, sharey=True, size_inches=size_inches)
-
-    ax[0].spy(IB[0], marker='.', markersize=2)
-    ax[1].spy(IB[1], marker='.', markersize=2)
-    plt.show()
-    return ax
-
-
-def watbal(CBC, IBOUND=None, parcel_data=None, time_data=None, gr=None):
-    """Return budget data summed over all parcels in m/d for all layers.
-
-    Parameters
-    ----------
-    CBB: flopy.utils.binaryfile.CellBudgetFile
-    IBOUND: numpy.ndarray (of ints(
-        Modeflow's IBOUND array
-    parcel_data: pd.DatFrame
-        parcel property data and spacial data (table)
-    time_data: pd.DataFrame
-        time / meteo data. Only the time_data.index is required
-    gr: fdm_tools.mfgrid.Grid
-
-    Returns
-    -------
-    W : np.recarray having labels ['RCH', 'EVT', 'GHB etc'] and values that
-        are np.ndarrays with shape (1, nlay, nrow, nper)
-        Each row has the cross sectional discharge in m/d.
-
-    Note thta labels must be adapted if new CBC packages are to be included.
-
-    @TO170823
-    """
-    #import pdb
-    #pdb.set_trace()
-    L = ['RCH', 'EVT', 'WEL', 'GHB', 'RIV', 'DRN', 'FLF', 'STO'] #Layer 0 labels
-
-    dtype=[(lbl, float, (CBC.nlay, CBC.nrow, CBC.nper)) for lbl in L]
-
-    W = np.zeros(1, dtype=dtype)
-
-    # Area of each cross section, made 3D (1, nlay, nrow, 1) compatible with W
-    A_xsec = np.sum(gr.DxLay * gr.DyLay * IBOUND, axis=-1)[np.newaxis, :, :, np.newaxis]
+    for lbl in lbls:
+        titles=['Top layer, lbl={}, iper={}'.format(lbl, iper),
+                'Bottom layer, lbl={}, iper={}'.format(lbl, iper)]
+        ax = newfig2(titles=titles, xlabel='column', ylabels=['row', 'row'],
+                     sharx=True, sharey=True, size_inches=size_inches)
+        ax[0].spy(IB[0], marker='.', markersize=2)
+        ax[1].spy(IB[1], marker='.', markersize=2)
 
 
-    # Relative contribution of parcel tot total after reducing model parcel area to 1 m2
-    #Arel = ((parcel_data['A_parcel'] / model_parcel_areas(gr, IBOUND)) / (parcel.data['A_parcel'].sum()))[:, np.newaxis]
-    vals3D = np.zeros(gr.shape).ravel()
-    print()
-    for lbl in L:
-        print(lbl, end='')
-        if lbl in ['WEL', 'GHB', 'RIV', 'DRN']:
-            vals = CBC.get_data(text=cbc_labels[lbl])
-            for iper in range(CBC.nper):
-                vals3D[vals[iper]['node']-1] = vals[iper]['q']
-                W[lbl][0,:, :, iper] = np.sum(vals3D.reshape(gr.shape), axis=-1)
-                vals3D[:] = 0.
-                if iper % 100 == 0: print('.',end='')
-            print(iper)
-        elif lbl in ['RCH', 'EVT']:
-            vals = CBC.get_data(text=cbc_labels[lbl])
-            for iper in range(CBC.nper):
-                W[lbl][0, 0, :, iper] = np.sum(vals[iper][1], axis=-1)
-                if iper % 100 == 0: print('.',end='')
-            print(iper)
+class Watbal_obj:
+
+    def __init__(self, dirs=None, IBOUND=None, parcel_data=None, time_data=None, gr=None):
+        """Return Watbal object carrying the water budget for all cross sections in m/d.
+
+        Parameters
+        ----------
+        dirs: Dir_struct object
+            directory structure of GGOR
+        IBOUND: numpy.ndarray (of ints(
+            Modeflow's IBOUND array
+        parcel_data: pd.DatFrame
+            parcel property data and spacial data (table)
+        time_data: pd.DataFrame
+            time / meteo data. Only the time_data.index is required
+        gr: fdm_tools.mfgrid.Grid
+
+        Generates
+        ---------
+        self.W : np.recarray having labels ['RCH', 'EVT', 'GHB etc'] and values that
+            are np.ndarrays with shape (1, nlay, nrow, nper)
+            Each row has the cross sectional discharge in m/d.
+
+        Note thta labels must be adapted if new CBC packages are to be included.
+
+        @TO 20170823 as function
+        @TO 20200907 turned into class
+        """
+        L = ['RCH', 'EVT', 'WEL', 'GHB', 'RIV', 'DRN', 'FLF', 'STO'] #Layer 0 labels
+
+        cbc_file = os.path.join(dirs.case_results, dirs.case_name +'.cbc')
+        print("\nReading binary cbc file '{}'.".format(cbc_file))
+        print("Scanning this file may take a minute or so ...")
+
+        self.CBC=bf.CellBudgetFile(cbc_file)
+
+        dtype=[(lbl, float, (self.CBC.nlay, self.CBC.nrow, self.CBC.nper)) for lbl in L]
+
+        self.W = np.zeros(1, dtype=dtype)
+        self.gr = gr
+
+        # Area of each cross section, made 3D (1, nlay, nrow, 1) compatible with W
+        A_xsec = np.sum(gr.DxLay * gr.DyLay * IBOUND, axis=-1)[np.newaxis, :, :, np.newaxis]
+
+        # Relative contribution of parcel tot total after reducing model parcel area to 1 m2
+        #Arel = ((parcel_data['A_parcel'] / model_parcel_areas(gr, IBOUND)) / (parcel.data['A_parcel'].sum()))[:, np.newaxis]
+        vals3D = np.zeros(gr.shape).ravel()
+        print()
+        for lbl in L:
+            print(lbl, end='')
+            if lbl in ['WEL', 'GHB', 'RIV', 'DRN']:
+                vals = self.CBC.get_data(text=cbc_labels[lbl])
+                for iper in range(self.CBC.nper):
+                    vals3D[vals[iper]['node']-1] = vals[iper]['q']
+                    self.W[lbl][0,:, :, iper] = np.sum(vals3D.reshape(gr.shape), axis=-1)
+                    vals3D[:] = 0.
+                    if iper % 100 == 0: print('.',end='')
+                print(iper)
+            elif lbl in ['RCH', 'EVT']:
+                vals = self.CBC.get_data(text=cbc_labels[lbl])
+                for iper in range(self.CBC.nper):
+                    self.W[lbl][0, 0, :, iper] = np.sum(vals[iper][1], axis=-1)
+                    if iper % 100 == 0: print('.',end='')
+                print(iper)
+            else:
+                vals = self.CBC.get_data(text=cbc_labels[lbl])
+                for iper in range(self.CBC.nper):
+                    self.W[lbl][0, :, :, iper] = np.sum(vals[iper], axis=-1)
+                    if iper % 100 == 0: print('.', end='')
+                print(iper)
+            self.W[lbl] /= A_xsec # from m3/d to m/d
+
+        # FLF lay 0 is the inflow of lay 1 and an outflow of lay 0
+        self.W['FLF'][0, 1, :, :] = +self.W['FLF'][0, 0, :, :]
+        self.W['FLF'][0, 0, :, :] = -self.W['FLF'][0, 1, :, :]
+
+        print('Done. See self.CBC and self.W')
+
+
+    def plot(self, parcel_data=None, time_data=None,
+                    selection=None, sharey=False, ax=None):
+        """Plot the running water balance of the GGOR entire area in mm/d.
+
+        Parameters
+        ----------
+        parcel_data: pd.DataFrame
+            parcel spatial and property data
+        time_data: pd.DataFrame with time index
+            time_index must correspond with MODFLOW's output
+            if not specified, then CBB.times is used
+        selection: list or sequence
+            the water budget will be taken over the indices in selection.
+            Use None for all.
+        sharey: bool
+            the y-axis of the two charts will be shared if True
+        ax: plt.Axis object or None (axes will the be created)
+            axes for figure.
+        """
+        m2mm = 1000. # from m to mm conversion
+
+        #leg is legend for this label in the graph
+        #clr is the color of the filled graph
+        LBL = {'RCH': {'leg': 'RCH', 'clr': 'green'},
+               'EVT': {'leg': 'EVT', 'clr': 'gold'},
+               'WEL': {'leg': 'WEL(in wvp2)' , 'clr': 'blue'},
+               #'CHD': {'leg': 'CHD', 'clr': 'red'},
+               'DRN': {'leg': 'DRN(drn/trenches/runoff)', 'clr': 'lavender'},
+               'RIV': {'leg': 'RIV(ditch out)', 'clr': 'magenta'},
+               'GHB': {'leg': 'GHB(ditch in+out)', 'clr': 'indigo'},
+               'FLF': {'leg': 'FLF(leakage)', 'clr': 'gray'},
+               'STO': {'leg': 'STO', 'clr': 'cyan'}}
+
+        if np.isscalar(selection): selection = [selection]
+
+        missing = set(LBL.keys()).difference(set(cbc_labels.keys()))
+        if len(missing):
+            raise ValueError("Missing labels = [{}]".format(', '.join(missing)))
+
+        tindex = CBC.times if time_data is None else time_data.index
+
+        # Sum over all Parcels. The watbal values are in mm/d. To sum over all
+        # parcels multiply by their share of the regional area [-]
+        Arel = (parcel_data['A_parcel'].values[selection] /
+                parcel_data['A_parcel'].values[selection].sum()
+                )[np.newaxis, np.newaxis, :, np.newaxis]
+
+
+        dtype = [(lbl, float, (CBC.nlay, CBC.nper)) for lbl in cbc_labels]
+        V = np.zeros(1, dtype=dtype)
+
+        # From now in mm/d
+        for lbl in cbc_labels: # note selection
+            V[lbl] = np.sum(self.W[lbl][0, :, selection, :] * Arel * m2mm,
+                            axis=2) # also to mm/d
+
+        clrs = [LBL[L]['clr'] for L in LBL]
+        lbls = [LBL[L]['leg'] for L in LBL]
+
+        if selection is None:
+            ttl = ' Taken over all {} parcels'.format(len(parcel_data))
+        elif len(selection) < 5:
+            ttl = ' Taken over {} parcels'.format(len(selection))
         else:
-            vals = CBC.get_data(text=cbc_labels[lbl])
-            for iper in range(CBC.nper):
-                W[lbl][0, :, :, iper] = np.sum(vals[iper], axis=-1)
-                if iper % 100 == 0: print('.', end='')
-            print(iper)
-        W[lbl] /= A_xsec # from m3/d to m/d
+            ttl = ' Taken over parcels [{}]'.format(
+                ', '.join([s for s in selection]))
 
-    # FLF lay 0 is the inflow of lay 1 and an outflow of lay 0
-    W['FLF'][0, 1, :, :] = +W['FLF'][0, 0, :, :]
-    W['FLF'][0, 0, :, :] = -W['FLF'][0, 1, :, :]
+        if ax is None:
+            ax = newfig2(titles=(
+                    'Water balance top layer.'   + ttl,
+                    'Water balance botom layer.' + ttl), xlabel='time', ylabels=['mm/d', 'mm/d'],
+                         size_inches=(14, 8), sharey=False, sharex=True)
 
-    return W
+        if not isinstance(ax, (list, tuple, np.ndarray)):
+            raise ValueError("Given ax must be an sequence of 2 axes.")
 
+        V0 = np.zeros((len(LBL), CBC.nper))
+        V1 = np.zeros((len(LBL), CBC.nper))
+        for i, lbl in enumerate(LBL):
+            V0[i] = V[lbl][0, 0, :]
+            V1[i] = V[lbl][0, 1, :]
 
-def plot_watbal(CBC, IBOUND=None, gr=None, parcel_data=None, time_data=None, sharey=False, ax=None):
-    """Plot the running water balance of the GGOR entire area in mm/d.
+        ax[0].stackplot(tindex, V0 * (V0>0), colors=clrs, labels=lbls)
+        ax[0].stackplot(tindex, V0 * (V0<0), colors=clrs) # no labels
+        ax[1].stackplot(tindex, V1 * (V1>0), colors=clrs, labels=lbls)
+        ax[1].stackplot(tindex, V1 * (V1<0), colors=clrs) # no labels
 
-    Parameters
-    ----------
-    CBB: flopy.utils.binaryfile.CellBudgetFile
-    IBOUND: numpy.ndarray (of ints(
-        Modeflow's IBOUND array
-    gr: fdm_tools.mfgrid.Grid
-    parcel_data: pd.DataFrame
-        parcel spatial and property data
-    time_data: pd.DataFrame with time index
-        time_index must correspond with MODFLOW's output
-        if not specified, then CBB.times is used
-    ax: plt.Axis object or None (axes will the be created)
-        axes for figure.
-    """
-    m2mm = 1000. # from m to mm conversion
+        ax[0].legend(loc='best', fontsize='xx-small')
+        ax[1].legend(loc='best', fontsize='xx-small')
 
-    #leg is legend for this label in the graph
-    #clr is the color of the filled graph
-    LBL = {'RCH': {'leg': 'RCH', 'clr': 'green'},
-           'EVT': {'leg': 'EVT', 'clr': 'gold'},
-           'WEL': {'leg': 'WEL(in wvp2)' , 'clr': 'blue'},
-           #'CHD': {'leg': 'CHD', 'clr': 'red'},
-           'DRN': {'leg': 'DRN(drn/trenches/runoff)', 'clr': 'lavender'},
-           'RIV': {'leg': 'RIV(ditch out)', 'clr': 'magenta'},
-           'GHB': {'leg': 'GHB(ditch in+out)', 'clr': 'indigo'},
-           'FLF': {'leg': 'FLF(leakage)', 'clr': 'gray'},
-           'STO': {'leg': 'STO', 'clr': 'cyan'}}
-
-    missing = set(LBL.keys()).difference(set(cbc_labels.keys()))
-    if len(missing):
-        raise ValueError("Missing labels = [{}]".format(', '.join(missing)))
-
-    tindex = CBC.times if time_data is None else time_data.index
-
-    # W in m/d
-    W = watbal(CBC, IBOUND=IBOUND, parcel_data=parcel_data, time_data=time_data, gr=gr)
-
-    # Sum over all Parcels. The watbal values are in mm/d. To sum over all
-    # parcels multiply by their share of the regional area [-]
-    Arel = (parcel_data['A_parcel'].values / parcel_data['A_parcel'].sum())[np.newaxis, np.newaxis, :, np.newaxis]
-
-    dtype = [(lbl, float, (CBC.nlay, CBC.nper)) for lbl in cbc_labels]
-    V = np.zeros(1, dtype=dtype)
-
-    # From now in mm/d
-    for lbl in cbc_labels:
-        V[lbl] = np.sum(W[lbl] * Arel * m2mm, axis=2) # also to mm/d
-
-    clrs = [LBL[L]['clr'] for L in LBL]
-    lbls = [LBL[L]['leg'] for L in LBL]
-
-    if ax is None:
-        ax = newfig2(titles=('Water balance top layer',
-            'water balance botom layer'), xlabel='time', ylabels=['mm/d', 'mm/d'],
-                     size_inches=(14, 8), sharey=False, sharex=True)
-
-    if not isinstance(ax, (list, tuple, np.ndarray)):
-        raise ValueError("Given ax must be an sequence of 2 axes.")
-
-    V0 = np.zeros((len(LBL), CBC.nper))
-    V1 = np.zeros((len(LBL), CBC.nper))
-    for i, lbl in enumerate(LBL):
-        V0[i] = V[lbl][0, 0, :]
-        V1[i] = V[lbl][0, 1, :]
-
-    ax[0].stackplot(tindex, V0 * (V0>0), colors=clrs, labels=lbls)
-    ax[0].stackplot(tindex, V0 * (V0<0), colors=clrs) # no labels
-    ax[1].stackplot(tindex, V1 * (V1>0), colors=clrs, labels=lbls)
-    ax[1].stackplot(tindex, V1 * (V1<0), colors=clrs) # no labels
-
-    ax[0].legend(loc='best', fontsize='xx-small')
-    ax[1].legend(loc='best', fontsize='xx-small')
-
-    return ax, W, V0, V1
+        return ax
 
 
 def run_modflow(dirs=None, parcel_data=None, time_data=None, laycbd=(1, 0), dx=1.):
@@ -1364,9 +1431,63 @@ def data_to_excel(dirs=None, data=None, fname=None):
     return None
 
 
+def get_test_parcels(path, sheet_name, test_id_col='Test'):
+    """Return the parcel test data from given workbook and worksheet.
+
+    Parameters
+    ----------
+    path to excel_workbook: str
+        excel workbook file with extension
+    sheet_name: str
+        sheet name within workbook
+    """
+    parcel_data = pd.read_excel(path, sheet_name=sheet_name, engine='openpyxl')
+
+    # Fill empty fields with the base valuesl
+    other_cols = parcel_data.columns.tolist()
+    tes_id_col = other_cols.pop(other_cols.index(test_id_col))
+
+    for col in other_cols:
+        parcel_data[col].loc[parcel_data[col].isna()] = parcel_data[col].iloc[0]
+
+    parcel_data[test_id_col] = parcel_data[test_id_col].fillna(method='ffill')
+
+    compute_and_set_omega(parcel_data)
+
+    return parcel_data
+
+
+def show_bounday_locations():
+    """Plot boundary cell locations for verification."""
+    show_locations('WEL', CBC)
+    show_locations('DRN', CBC)
+    show_locations('GHB', CBC)
+    show_locations('RIV', CBC)
+
+
+def save_parcel_data_to_excel(dirs,
+                              start='pdata_start.xlsx', end='pdata_end.xlsx'):
+    """Save the parcel_data to Excel to generate test_data.
+
+    Parameters
+    ----------
+    dirs: DIr_struct
+        GGOR directory structure.
+    start: str
+        workbook name to store the initial parcel_data
+    end: str
+        workbook name to store the final/current parcel_dadta
+    """
+    pdata_start = data_from_dbffile(os.path.join(dirs.case, case + '.dbf'))
+
+    data_to_excel(dirs, pdata_start, start=start)
+    data_to_excel(dirs, parcel_data, end=end)
+
 #%% main
 
 if __name__ == "__main__":
+
+    test=True
 
     # Parameters to generate the model. Well use this as **kwargs
     GGOR_home = os.path.expanduser('~/GRWMODELS/python/GGOR') # home directory
@@ -1381,52 +1502,65 @@ if __name__ == "__main__":
     # Add columns "summer' and "hyear" to it"
     meteo_data = handle_meteo_data(meteo_data, summer_start=4, summer_end=10)
 
-    # Bofek data, coverting from code to soil properties (kh, kv, sy)
-    # The BOFEK column represents a dutch standardized soil type. It is used.
-    # Teh corresponding values for 'kh', 'kv' and 'Sy' are currently read from
-    # and excel worksheet into a pd.DataFrame (table)
-    bofek = pd.read_excel(os.path.join(dirs.bofek, "BOFEK eenheden.xlsx"),
-                          sheet_name = 'bofek', index_col=0, engine="openpyxl")
+    if test:
+        parcel_data = get_test_parcels(os.path.join(
+                                dirs.case, 'pdata_test.xlsx'), 'parcel_tests')
+    else:
+        # Bofek data, coverting from code to soil properties (kh, kv, sy)
+        # The BOFEK column represents a dutch standardized soil type. It is used.
+        # Teh corresponding values for 'kh', 'kv' and 'Sy' are currently read from
+        # and excel worksheet into a pd.DataFrame (table)
+        bofek = pd.read_excel(os.path.join(dirs.bofek, "BOFEK eenheden.xlsx"),
+                              sheet_name = 'bofek', index_col=0, engine="openpyxl")
 
-    # Create a GGOR_modflow object and get the upgraded parcel_data from it
-    parcel_data = GGOR_data(defaults=defaults, bofek=bofek, BMINMAX=(5, 250),
-                               GGOR_home=GGOR_home, case=case).data
+        # Create a GGOR_modflow object and get the upgraded parcel_data from it
+        parcel_data = GGOR_data(defaults=defaults, bofek=bofek, BMINMAX=(5, 250),
+                                   GGOR_home=GGOR_home, case=case).data
 
     # MODFLOW input arrays are int the returned dicts
     par, spd, bdd, gr =  run_modflow(dirs=dirs, parcel_data=parcel_data, time_data=meteo_data)
 
+    #%% Get the modflow-computed heads and cell by cell flows
+
+    heads = Heads_obj(dirs, IBOUND=par['IBOUND'], gr=gr)
+
+    watbal = Watbal_obj(dirs,
+                           IBOUND=par['IBOUND'],
+                           parcel_data=parcel_data,
+                           time_data=meteo_data,
+                           gr=gr)
+
     #%% Open HDS file and plot heads (with GXG)
-    hds_file = os.path.join(dirs.case_results, case +'.hds')
-    print("\nReading binary head file '{}' ...".format(hds_file))
-    HDS = bf.HeadFile(hds_file)
+    if test:
+        for tst in set(parcel_data['Test'].values):
+            selection = list(parcel_data.index[parcel_data['Test'] == tst])
+            test_vals_str = '{}'.format(', '.join(
+                [str(tv) for tv in parcel_data[tst].iloc[selection]]))
 
-    GXG = proces_and_plot_heads(HDS,
-                   time_data=meteo_data, parcel_data=parcel_data,
-                   selection=[7], gr=gr, IBOUND=par['IBOUND'])
+            titles=['Parcel averaged heads, testvar {} in [{}]'.format(tst, test_vals_str),
+                    'Parcel averaged heads, testvar {} in [{}]'.format(tst, test_vals_str)]
+            ax = heads.plot(time_data=meteo_data,
+                           parcel_data=parcel_data,
+                           selection=selection,
+                           titles=titles,
+                           size_inches=(14, 8))
+            if False:
+                ax = watbal.plot(parcel_data=parcel_data,
+                                 time_data=meteo_data,
+                                 selection=selection[0],
+                                 sharey=True)
+    else:
+        selection = [0]
+        ax = heads.plot(time_data=meteo_data,
+               parcel_data=parcel_data,
+               selection=selection,
+               titles=titles,
+               size_inches=(14, 8))
 
-    #%% Water balance
-    cbc_file = os.path.join(dirs.case_results, case +'.cbc')
-    print("\nReading binary cbc file '{}'. Scanning this file may takes some time ...".format(cbc_file))
-    CBC=bf.CellBudgetFile(cbc_file)
-
-    #W = watbal(CBC, IBOUND=par['IBOUND'], parcel_data=parcel_data, time_data=meteo_data, gr=gr)
-    ax, W, V0, V1 = plot_watbal(CBC,
-                    IBOUND=par['IBOUND'], gr=gr, parcel_data=parcel_data,
-                    time_data=meteo_data, sharey=False)
+        ax = watbal.plot(parcel_data=parcel_data,
+                         time_data=time_data,
+                         selection=None,   # over all parcels
+                         sharey=True)
 
 #%%
     print('---- All done ! ----')
-
-    #%% show where the boundary cells are in the model.
-    if False:
-        show_locations('WEL', CBC)
-        show_locations('DRN', CBC)
-        show_locations('GHB', CBC)
-        show_locations('RIV', CBC)
-
-#%% Save the parcel_data to Excel to generate test_data
-    if False:
-        pdata_start = data_from_dbffile(os.path.join(dirs.case, case + '.dbf'))
-
-        data_to_excel(dirs, pdata_start, 'pdata_start')
-        data_to_excel(dirs, parcel_data, 'pdata_end')
