@@ -664,7 +664,7 @@ class GGOR_data:
         else:
             raise KeyError('These keys [{}] in data are not in bofek.index'.format(', '.join(dindex)))
 
-        if bofek in self.data.columns:
+        if 'bofek' in self.data.columns:
             self.data['kh'] = np.array([bofek['kh'].loc[i] for i in self.data['bofek']])
             self.data['sy'] = np.array([bofek['Sy'].loc[i] for i in self.data['bofek']])
             #self.data['st'] = np.array([bofek['staring'].loc[i] for i in self.data['bofek']])
@@ -922,7 +922,7 @@ class Heads_obj:
                            label='parcel {}, hLR'.format(isel))
                     a.plot(time_data.index, hDr, clr, ls='dashdot', lw=lw,
                            label='parcel {}, zdr'.format(isel))
-            a.legend(loc=loc)
+            a.legend(loc=loc, fontsize='xx-small')
 
             self.GXG.plot(ax[0], selection=selection)
 
@@ -1083,7 +1083,7 @@ class GXG_object:
         return ax
 
 
-def show_locations(lbls=None, CBC=None, iper=0, size_inches=(10,8.5)):
+def show_boundary_locations(lbls=None, CBC=None, iper=0, size_inches=(10,8.5)):
     """Show the location of the nodes in recarray given CBC data.
 
     The refers to ['WEL', 'DRN', 'GHB', 'RIV', 'CHD'] for which the data
@@ -1092,7 +1092,7 @@ def show_locations(lbls=None, CBC=None, iper=0, size_inches=(10,8.5)):
     Parameters
     ----------
     lbls: list, tuple
-        one or more of ['WEL', 'DRN', 'GHB', 'RIV', 'CHD']
+        one or more of ['WEL', 'DRN', 'GHB', 'RIV']
     CBC: open file handle
         CBC file handle
     iper: int
@@ -1100,13 +1100,16 @@ def show_locations(lbls=None, CBC=None, iper=0, size_inches=(10,8.5)):
     size_inches: 2 tuple of floats
         size of the resulting figure.
     """
-    IB = np.zeros((CBC.nlay, CBC.nrow, CBC.ncol), dtype=int)
-    nodes = CBC.get_data(text=cbc_labels[lbl])[iper]['node'] - 1
-    IB.ravel()[nodes] = 1
-
-    if lbls is None: lbls = ['WEL', 'DRN', 'GHB', 'RIV']
+    if lbls is None:
+        lbls = ['WEL', 'DRN', 'GHB', 'RIV']
+    elif isinstance(lbls, str):
+        lbls = [lbls]
 
     for lbl in lbls:
+        IB = np.zeros((CBC.nlay, CBC.nrow, CBC.ncol), dtype=int)
+        nodes = CBC.get_data(text=cbc_labels[lbl])[iper]['node'] - 1
+        IB.ravel()[nodes] = 1
+
         titles=['Top layer, lbl={}, iper={}'.format(lbl, iper),
                 'Bottom layer, lbl={}, iper={}'.format(lbl, iper)]
         ax = newfig2(titles=titles, xlabel='column', ylabels=['row', 'row'],
@@ -1116,6 +1119,7 @@ def show_locations(lbls=None, CBC=None, iper=0, size_inches=(10,8.5)):
 
 
 class Watbal_obj:
+    """Water balance object."""
 
     def __init__(self, dirs=None, IBOUND=None, parcel_data=None, time_data=None, gr=None):
         """Return Watbal object carrying the water budget for all cross sections in m/d.
@@ -1169,27 +1173,27 @@ class Watbal_obj:
                 vals = self.CBC.get_data(text=cbc_labels[lbl])
                 for iper in range(self.CBC.nper):
                     vals3D[vals[iper]['node']-1] = vals[iper]['q']
-                    self.W[lbl][0,:, :, iper] = np.sum(vals3D.reshape(gr.shape), axis=-1)
+                    self.W[lbl][0][:, :, iper] = np.sum(vals3D.reshape(gr.shape), axis=-1)
                     vals3D[:] = 0.
                     if iper % 100 == 0: print('.',end='')
                 print(iper)
             elif lbl in ['RCH', 'EVT']:
                 vals = self.CBC.get_data(text=cbc_labels[lbl])
                 for iper in range(self.CBC.nper):
-                    self.W[lbl][0, 0, :, iper] = np.sum(vals[iper][1], axis=-1)
+                    self.W[lbl][0][0, :, iper] = np.sum(vals[iper][1], axis=-1)
                     if iper % 100 == 0: print('.',end='')
                 print(iper)
             else:
                 vals = self.CBC.get_data(text=cbc_labels[lbl])
                 for iper in range(self.CBC.nper):
-                    self.W[lbl][0, :, :, iper] = np.sum(vals[iper], axis=-1)
+                    self.W[lbl][0][:, :, iper] = np.sum(vals[iper], axis=-1)
                     if iper % 100 == 0: print('.', end='')
                 print(iper)
             self.W[lbl] /= A_xsec # from m3/d to m/d
 
         # FLF lay 0 is the inflow of lay 1 and an outflow of lay 0
-        self.W['FLF'][0, 1, :, :] = +self.W['FLF'][0, 0, :, :]
-        self.W['FLF'][0, 0, :, :] = -self.W['FLF'][0, 1, :, :]
+        self.W['FLF'][0][1, :, :] = +self.W['FLF'][0][0, :, :]
+        self.W['FLF'][0][0, :, :] = -self.W['FLF'][0][1, :, :]
 
         print('Done. See self.CBC and self.W')
 
@@ -1227,36 +1231,41 @@ class Watbal_obj:
                'FLF': {'leg': 'FLF(leakage)', 'clr': 'gray'},
                'STO': {'leg': 'STO', 'clr': 'cyan'}}
 
-        if np.isscalar(selection): selection = [selection]
+        if selection is None:
+            selection = slice(0, len(parcel_data), 1)
+        elif np.isscalar(selection):
+            selection = slice(int(selection), int(selection) + 1, 1)
+        elif not isinstance(selection, (list, tuple, np.ndarray, slice)):
+            raise ValueError("Illegal selection type '{}'.".format(
+                str(type(selection))) + " Use None, an int or a sequence.")
 
         missing = set(LBL.keys()).difference(set(cbc_labels.keys()))
         if len(missing):
             raise ValueError("Missing labels = [{}]".format(', '.join(missing)))
 
-        tindex = CBC.times if time_data is None else time_data.index
+        tindex = self.CBC.times if time_data is None else time_data.index
 
         # Sum over all Parcels. The watbal values are in mm/d. To sum over all
         # parcels multiply by their share of the regional area [-]
         Arel = (parcel_data['A_parcel'].values[selection] /
                 parcel_data['A_parcel'].values[selection].sum()
-                )[np.newaxis, np.newaxis, :, np.newaxis]
+                )[np.newaxis, :, np.newaxis] # (nlay, selected_parcels, nper)
 
-
-        dtype = [(lbl, float, (CBC.nlay, CBC.nper)) for lbl in cbc_labels]
+        # summed over the entire selection!! (so nrow drops)
+        dtype = [(lbl, float, (self.CBC.nlay, self.CBC.nper)) for lbl in cbc_labels]
         V = np.zeros(1, dtype=dtype)
 
         # From now in mm/d
         for lbl in cbc_labels: # note selection
-            V[lbl] = np.sum(self.W[lbl][0, :, selection, :] * Arel * m2mm,
-                            axis=2) # also to mm/d
+            V[lbl][0] = np.sum(self.W[lbl][0][:, selection, :] * Arel * m2mm,
+                            axis=-2) # also to mm/d
 
         clrs = [LBL[L]['clr'] for L in LBL]
         lbls = [LBL[L]['leg'] for L in LBL]
 
-        if selection is None:
-            ttl = ' Taken over all {} parcels'.format(len(parcel_data))
-        elif len(selection) < 5:
-            ttl = ' Taken over {} parcels'.format(len(selection))
+        if isinstance(selection, slice):
+            ttl = ' Taken over parcels[{}:{}:{}]'.format(
+                        selection.start, selection.stop, selection.step)
         else:
             ttl = ' Taken over parcels [{}]'.format(
                 ', '.join([s for s in selection]))
@@ -1270,8 +1279,8 @@ class Watbal_obj:
         if not isinstance(ax, (list, tuple, np.ndarray)):
             raise ValueError("Given ax must be an sequence of 2 axes.")
 
-        V0 = np.zeros((len(LBL), CBC.nper))
-        V1 = np.zeros((len(LBL), CBC.nper))
+        V0 = np.zeros((len(LBL), self.CBC.nper))
+        V1 = np.zeros((len(LBL), self.CBC.nper))
         for i, lbl in enumerate(LBL):
             V0[i] = V[lbl][0, 0, :]
             V1[i] = V[lbl][0, 1, :]
@@ -1445,7 +1454,7 @@ def get_test_parcels(path, sheet_name, test_id_col='Test'):
 
     # Fill empty fields with the base valuesl
     other_cols = parcel_data.columns.tolist()
-    tes_id_col = other_cols.pop(other_cols.index(test_id_col))
+    test_id_col = other_cols.pop(other_cols.index(test_id_col))
 
     for col in other_cols:
         parcel_data[col].loc[parcel_data[col].isna()] = parcel_data[col].iloc[0]
@@ -1455,14 +1464,6 @@ def get_test_parcels(path, sheet_name, test_id_col='Test'):
     compute_and_set_omega(parcel_data)
 
     return parcel_data
-
-
-def show_bounday_locations():
-    """Plot boundary cell locations for verification."""
-    show_locations('WEL', CBC)
-    show_locations('DRN', CBC)
-    show_locations('GHB', CBC)
-    show_locations('RIV', CBC)
 
 
 def save_parcel_data_to_excel(dirs,
@@ -1505,6 +1506,9 @@ if __name__ == "__main__":
     if test:
         parcel_data = get_test_parcels(os.path.join(
                                 dirs.case, 'pdata_test.xlsx'), 'parcel_tests')
+
+        # Special test
+        parcel_data = parcel_data.iloc[0:1]
     else:
         # Bofek data, coverting from code to soil properties (kh, kv, sy)
         # The BOFEK column represents a dutch standardized soil type. It is used.
@@ -1558,9 +1562,14 @@ if __name__ == "__main__":
                size_inches=(14, 8))
 
         ax = watbal.plot(parcel_data=parcel_data,
-                         time_data=time_data,
+                         time_data=meteo_data,
                          selection=None,   # over all parcels
                          sharey=True)
 
 #%%
     print('---- All done ! ----')
+#%%
+    ax = watbal.plot(parcel_data=parcel_data,
+                         time_data=meteo_data,
+                         selection=None,   # over all parcels
+                         sharey=True)

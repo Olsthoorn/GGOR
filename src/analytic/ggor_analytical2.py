@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Tue May 22 10:58:55 2018
+Created on Tue May 22 10:58:55 2018.
 
 Analyical transient simulations of cross sections between parallel ditches.
 
@@ -40,7 +40,7 @@ Names of the different analytial solutions:
     So we can name solutions as follows
     L1q, L2q, L1f L2f, L1qw, L1fw, L2f2, L2qw
 
-@author: Theo
+@Theo Olsthoorn 20200901
 """
 import os
 import numpy as np
@@ -50,6 +50,18 @@ import matplotlib.pyplot as plt
 from KNMI import knmi
 import GGOR.src.numeric.gg_mflow as gt
 import GGOR.src.numeric.gg_mflow_1parcel as gn
+
+cbc_labels = {
+    'STO': 'STORAGE',
+    'FLF': 'FLOW LOWER FACE ',
+    'WEL': 'WELLS',              # used for seepage. Are in seconde layer.
+    'EVT': 'ET',
+    'GHB': 'HEAD DEP BOUNDS',
+    'RIV': 'RIVER LEAKAGE',
+    'DRN': 'DRAINS',             # also used for trenches.
+    'RCH': 'RECHARGE',
+    }
+
 
 def gen_testdata(tdata, **kwargs):
     """Return copy of tdata with altered input columns suitable for testing.
@@ -459,7 +471,10 @@ def single_Layer_transient(solution_name, props=None, tdata=None):
         raise ValueError("Don't recognize solution name <{}>".
                          format(solution_name))
 
-    return tdata
+    Phi = np.vstack((h0[1:], h1[1:])).T
+    HDS = HDS_obj(hds=Phi, tindex=tdata.index)
+
+    return tdata, HDS
 
 def single_layer_steady(solution_name, props=None, tdata=None, dx=1.0):
     """Return simulated results for cross section.
@@ -548,7 +563,6 @@ def multi_layer_steady(props=None, tdata=None, dx=1., plot=True, **kwargs):
 
     @TO 20200615, 20200908
     """
-
     if not isinstance(tdata, dict):
         raise ValueError('tdata must be a dict for the steady-state case.')
 
@@ -760,6 +774,9 @@ def multi_layer_transient(props=None, tdata=None,  check=True, **kwargs):
 
     Phi = Phi[:, 1:] # cut off first day (before first tdata in index)
 
+
+    HDS = HDS_obj(hds=Phi, tindex=tdata.index)
+
     # Store results
     tdata['h0'] = Phi[0]  # head top layer
     tdata['h1'] = Phi[1]  # head bot layer
@@ -824,7 +841,67 @@ def multi_layer_transient(props=None, tdata=None,  check=True, **kwargs):
         pd.options.display.max_columns = mxcols
 
 
-    return tdata # return updated DataFrame
+    return tdata, HDS # return updated DataFrame
+
+class HDS_obj:
+    """Object to store and retrieve the heads like the on of Modflow."""
+
+    def __init__(self, hds=None, tindex=None):
+        """Return HDS_obj.
+
+        Parameters
+        ----------
+        hds: ndarray
+            heads in shape (nlay, 1, nper)
+        tindex: index like pd.Datrame.index
+            datetimes for hds
+        """
+        if len(hds.shape) == 2:
+            hds = hds.reshape((hds.shape, 1, 1))
+        elif len(hds.shape) == 3:
+            hds = hds.reshape((hds.shape, 1))
+
+        nper, nlay, nrow, ncol = hds.shape # nlay, nparcel, ncol
+
+
+        assert len (tindex) == nper, ValueError(
+            "len(tindex)={} not equql to nper={}".format(len(tindex), nper))
+
+        dtype = [('t', pd.Timestamp, (nper), tindex), ('h', float, (nper, nlay, nrow, ncol))]
+
+        self.hds = np.zeros(1, dtype=dtype)
+
+        self.hds['t'] = tindex
+        self.hds['h'][0] = hds
+
+    def plot(self, selection=None, titles=['top', 'bottom'], xlabel='time',
+             ylabels=['head [m]', 'head [m]'], sharex=True, sharey=True,
+             size_inches=(14, 8)):
+        """Plot the heads.
+
+        Parameters
+        ----------
+        selection: int, sequence or slice
+            which of the parcels to plot
+        """
+        if not selection:
+            selection = slice(0, self.nrow, 1)
+        elif isinstance(selection, int):
+            selection = slice(selection, selection + 1, 1)
+        elif not isinstance(selection (list, tuple, np.ndarray, slice)):
+            raise ValueError("Illegal selection type = {}.".format(
+                type(selection)) + " Use None, int, or a sequence.")
+
+        ax = newfig2(titles, xlabel, ylabels, sharex-sharex, sharey-sharey,
+                     size_inches=size_inches)
+
+        ax[0].plot(self.hds['t'], self.heads[0][:, 0, 0, 0], label='cover layer')
+        ax[1].plot(self.hds['t'], self.heads[0][:, 1, 0, 0], label='regional')
+
+        plot_hydrological_year_boundaries(ax[0])
+        plot_hydrological_year_boundaries(ax[1])
+
+        return ax
 
 
 def getGXG(tdata=None, startyr=None, nyr=8):
@@ -1166,7 +1243,7 @@ class Solution:
         The head at the beginning of the first time step is assumed
         equal to that of ditches during the first time step.
         """
-        self.tdata = single_Layer_transient(solution_name=self.name,
+        self.tdata, self.HDS = single_Layer_transient(solution_name=self.name,
                                           props=self.props,
                                           tdata=tdata)
         return
@@ -1315,7 +1392,8 @@ class Lnum(Solution):
 
     def sim(self, tdata=None):
         """Simulate 2-layer system using multilayer analytical solution."""
-        self.tdata = gn.modflow(props=props, tdata=tdata)
+        self.tdata = tdata
+        gn.modflow(props=props, dx=1.0, tdata=tdata)
 
 
 def gen_test_time_data(): # Dummy for later use
@@ -1378,10 +1456,6 @@ if __name__ == '__main__':
     iparcel = 0
 
     props = parcel_data.iloc[iparcel]
-
-    # AUgment the tdata with transient input
-    tdata['hLR'] =                      props['h_winter']
-    tdata['hLR'].loc[tdata['summer']] = props['h_summer']
 
     if False: # analytic with given head in regional aquifer
         l1f = L1f(props=props)
