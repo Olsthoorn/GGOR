@@ -51,6 +51,8 @@ from KNMI import knmi
 import GGOR.src.numeric.gg_mflow as gt
 import GGOR.src.numeric.gg_mflow_1parcel as gn
 
+NOT = np.logical_not
+
 cbc_labels = {
     'STO': 'STORAGE',
     'FLF': 'FLOW LOWER FACE ',
@@ -90,9 +92,9 @@ def gen_testdata(tdata, **kwargs):
     -------
     gen_testdata(tdata, RH=(200, 0.02, 0.01, 0.03, 0.01)),
                        EV24 = (365, 0., -0.001)
-                       q=(150, -0.001, 0.001, 0, -0.003)
+                       q_up=(150, -0.001, 0.001, 0, -0.003)
                        )
-        This fills the tdata colums 'RH', EV24' and 'q' with successive
+        This fills the tdata colums 'RH', EV24' and 'q_up' with successive
         values repeatly at each interval of resp. 200, 365 and 150 days.
     """
     tdata = tdata.copy() # leave tdata intact
@@ -121,10 +123,11 @@ def newfig(title='title?', xlabel='xlabel?', ylabel='ylabel?', xscale='linear', 
     ax.grid()
     return ax
 
+
 def newfig2(titles=['title1', 'title2'], xlabel='time',
             ylabels=['heads [m]', 'flows [m2/d]'],
             xscale='linear',
-            yscale=['linear', 'linear'],
+            yscales=['linear', 'linear'],
             sharex=True,
             sharey=False,
             xlims=None,
@@ -134,15 +137,13 @@ def newfig2(titles=['title1', 'title2'], xlabel='time',
     """Return ax[0], ax[1] for new plot."""
     fig, ax = plt.subplots(2, 1, sharex=sharex, sharey=sharey)
     fig.set_size_inches(size_inches)
-    for a, title, ylabel in zip(ax, titles, ylabels):
+    for a, title, ylabel, yscale in zip(ax, titles, ylabels, yscales):
         a.set_title(title)
         a.set_xlabel(xlabel)
         a.set_ylabel(ylabel)
+        a.set_xscale(xscale)
+        a.set_yscale(yscale)
         a.grid()
-    ax[0].set_xscale(xscale)
-    ax[1].set_xscale(xscale)
-    ax[0].set_yscale(yscale[0])
-    ax[1].set_yscale(yscale[1])
     if xlims is not None:
         ax[0].set_xlim(xlims[0])
         ax[1].set_xlim(xlims[1])
@@ -226,12 +227,197 @@ def getDT(tdata):
     Dt = np.hstack((Dt[0], Dt))
     return Dt
 
+def add_var_to_tseries(tdata, var='q_up', props=None):
+    """Return time series variable var added.
+
+    Add column var to series getting the value or monthly value from dict
+    or series props. The var must be in props like 'var' or 'var01', var02,
+    ... 'var12' in case the variable is given by monthly values.
+
+    Used for specified heads ('phi')and seepage ('q_up')
+
+    Parameters
+    ----------
+    tdata: time-series data for recharge
+        the date and time of the series
+    props: dict (pd.Series with props as keys)
+        properties of the parcel.
+    """
+    if var in props: tdata[var] = props[var]
+
+    month = np.array([t.month for t in tdata.index], dtype=int)
+
+    # Inc case we have monthly data in props, use them:
+    for m in range(1, 13):
+        try:
+            tdata[var].loc[m == mon] = props[f'{var:}{m:02d}']
+        except:
+            pass
+    return tdata
+
+
+class HDS_obj:
+    """Object to store and retrieve the heads like the on of Modflow."""
+
+    def __init__(self, tdata=None, parcel_data=None):
+        """Return HDS_obj.
+
+        Parameters
+        ----------
+        hds: ndarray
+            heads in shape (nlay, 1, nper)
+        tindex: index like pd.Datrame.index
+            datetimes for hds
+        """
+        self.nparcel = len(parcel_data)
+        self.nlay = 2 # for GGOR
+        self.nper = len(tdata)
+        self.tindex = tdata.index
+        self.shape = (self.nlay, self.nparcel, self.nper)
+        self.data = np.zeros((self.nlay, self.nparcel, self.nper), dtype=float)
+
+
+    def plot(self, titles=['top', 'bottom'], xlabel='time',
+             ylabels=['head [m]', 'head [m]'], sharex=True, sharey=True,
+             selection=None, size_inches=(14, 8)):
+        """Plot the heads.
+
+        Parameters
+        ----------
+        selection: int, sequence or slice
+            which of the parcels to plot, none means all (first 5)
+
+        """
+
+        if not selection:
+            selection = slice(0, min(5, self.nrow), 1)
+        elif isinstance(selection, int):
+            selection = slice(selection, selection + 1, 1)
+        elif not isinstance(selection, (list, tuple, np.ndarray, slice, range)):
+            raise ValueError("Illegal selection type = {}.".format(
+                type(selection)) + " Use None, int, or a sequence.")
+
+        ax = newfig2(titles=titles, xlabel=xlabel, ylabels=ylabels,
+                     sharex=sharex, sharey=sharey,
+                     size_inches=size_inches)
+
+        clrs = 'brgkmcy'
+        for sel in selection:
+            clr = clrs[sel % len(clrs)]
+            ax[0].plot(self.tindex, self.data[0][sel], clr, label='parcel {}'.format(sel))
+            ax[1].plot(self.tindex, self.data[1][sel], clr, label='parcel {}'.format(sel))
+
+        ax[0].legend(loc='best', fontsize='xx-small')
+        ax[1].legend(loc='best', fontsize='xx-small')
+
+        plot_hydrological_year_boundaries(ax[0], tindex=self.tindex, color='darkgray')
+        plot_hydrological_year_boundaries(ax[1], tindex=self.tindex, color='darkgray')
+
+        return ax
+
+
+LBL = { 'RCH': {'leg': 'RCH', 'clr': 'green'},
+    'EVT': {'leg': 'EVT', 'clr': 'gold'},
+    'DRN': {'leg': 'DRN', 'clr': 'lavender'},
+    'GHB': {'leg': 'GHB', 'clr': 'purple'},
+    'RIV': {'leg': 'GHB', 'clr': 'magenta'},
+    'STO': {'leg': 'STO', 'clr': 'cyan'},
+    'FLF': {'leg': 'FLF', 'clr': 'gray'},
+    'WEL': {'leg': 'WEL', 'clr': 'black'},
+    }
+
+
+class CBC_obj:
+    """CBC_obj to store  row by row  flows.
+
+    Stores nlay * nparcel * nper flows for each cbc_label.
+    """
+
+
+    def __init__(self, tdata=None, parcel_data=None):
+        """Gerate a CBC instantiation for the cross sections.
+
+        Parameters
+        ----------
+        tdata: pd.DataFrame
+            time data, (RH, EV24, 'summer')
+        parcel_data: pd.DataFrame
+            parcel properties
+        """
+        self.tindex = tdata.index
+        self.nper = len(tdata)
+        self.nparcel = len(parcel_data)
+        self.nlay = 2
+        self.ncol = 1
+        self.shape = (self.nlay, self.nparcel, self.nper)
+        self.labels = [k for k in LBL]
+
+        dtype = [(lbl, float, (self.nlay, self.nparcel, self.nper))
+                                                 for lbl in self.labels]
+        self.data = np.zeros(1, dtype=dtype)
+
+    def plot(self, selection=None, titles=['top', 'bottom'], xlabel='time',
+             ylabels=['head [m]', 'head [m]'], sharex=True, sharey=True,
+             size_inches=(14, 8), ax=None, **kwargs):
+        """Plot the running water balance.
+
+        Parameters
+        ----------
+        selection: set or sequence
+            the set of parcels to include in the water budget
+            ax[0], ax[1] are the axes for plotting the top and bottom layer.
+        titles: list of 2 strings
+        xlabel: str
+        ylabels: list of 2 strings
+        size_inches: tuple of two
+            Figure size. Only applied when a new figure is generated (ax is None).
+        ax: list optional
+        kwargs: dict with extra parameters passed to newfig2 if present
+
+        Returns
+        -------
+        ax: list of two axes
+            plotting axes
+        """
+        if ax is None:
+            ax = newfig2(titles, xlabel, ylabels, sharey=True, size_inches=size_inches, **kwargs)
+            ax[0].set_title(titles[0])
+            ax[1].set_title(titles[1])
+        else:
+            try:
+                for a, title, ylabel in zip(ax, titles, ylabels):
+                    a.set_title(title)
+                    a.set_xlabel(xlabel)
+                    a.set_ylabel(ylabel)
+                    a.grid(True)
+            except:
+                raise ValueError('ax must be a list of two plt.Axis objectes.')
+
+        C0   = [LBL[k]['clr'] for k in self.data.dtype.names]
+        Lbl0 = [LBL[k]['leg'] for k in self.data.dtype.names]
+
+        V0 = np.array(len(LBL), len(self.tindex))
+        V1 = np.array(len(LBL), len(self.tindex))
+
+        for i, lbl in enumerate(cbc_labels):
+            V0[i] = self.data[lbl][0]
+            V1[i] = self.data[lbl][1]
+
+        ax[0].stackplot(index, (V0 * (V0>0)).T, colors=C0, labels=Lbl0)
+        ax[0].stackplot(index, (V0 * (V0<0)).T, colors=C0) # no labels
+        ax[1].stackplot(index, (V1 * (V1>0)).T, colors=C0, labels=Lbl0)
+        ax[1].stackplot(index, (V1 * (V1<0)).T, colors=C0) # no labels
+
+        ax[0].legend(loc='best', fontsize='xx-small')
+        ax[1].legend(loc='best', fontsize='xx-small')
+
+        return ax
 
 #% Stand-alone simulator
 # This simulator is meant to work indpendently of the class solution
 # It must therefore contain properties, solution name and the different
 # methods that are designed for specific solutions.
-def single_Layer_transient(solution_name, props=None, tdata=None):
+def single_Layer_transient(solution_name, parcel_data=None, tdata=None):
     """Return results tim_data with simulation results included in its columns.
 
     Parameters
@@ -244,11 +430,11 @@ def single_Layer_transient(solution_name, props=None, tdata=None):
     props: dict
         required spacial propeties.
     tdata: pd.DataFrame
-        required fields: hLR, RH, EV24, q or h1
+        required fields: hLR, RH, EV24, q_up or h1
             hLR: left-right ditch-water level
             RH: precipitation
             EV24: evapotranspiration
-            q: net seepage=, upward positive
+            q_up: net seepage=, upward positive
             h1: head in the regional aquifer
         RH and EV24 must be in m/d!
 
@@ -272,133 +458,82 @@ def single_Layer_transient(solution_name, props=None, tdata=None):
     """
     tdata = tdata.copy() # leave original intact
 
-    check_cols(tdata, ['RH', 'EV24', 'hLR'])
+    check_cols(tdata, ['RH', 'EV24', 'summer'])
 
-    # Extract tdata for single-layer problem
-    b, c, wo, wi = props['b'], props['c_CB'], props['wo_ditch'], props['wi_ditch']
-    mu, S, k =  props['sy'], props['S2'], props['kh']
-    cdr, hdr = props['c_drain'], props['AHN'] - props['d_drain']
+    # Geenrate heads object and a cbc object.
+    HDS = HDS_obj(tdata=tdata, parcel_data=parcel_data)
+    CBC = CBC_obj(tdata=tdata, parcel_data=parcel_data)
 
-    D = props['D1']
-
-    # Initialize head in top layer and regional aquifer
-    h0 = np.zeros(len(tdata) + 1) # initialize h0, first aquifer
-    h1 = np.zeros(len(tdata) + 1) # initialize h1, second aquifer (phi)
-    hm = np.zeros(len(tdata))
-    h0[0] = tdata['hLR'].iloc[0]
-    h1[0] = tdata['hLR'].iloc[0]
+    nper, nparcel  = CBC.nper, CBC.nparcel
 
     Dt   = getDT(tdata)
-    qs0  = np.zeros(len(tdata))
-    qv0  = np.zeros(len(tdata))
-    qdr  = np.zeros(len(tdata))
-    qb0 = np.zeros(len(tdata))
-    tol = 1e-3
+
+    wtol = 1e-3 # d, tolerance wi > wo
+    htol = 1e-3 # d, head tolerance
+
     if solution_name == 'L1f': # for given Phi (f)
-        check_cols(tdata, ['h1'])
-        tdata['q'] = np.NaN
-        for i, (dt, t1, hlr, RH, EV24, phi, hdr) in enumerate(zip(
-                                Dt,                  # time step
-                                np.cumsum(Dt),       # t1 (end of time step)
-                                tdata['hLR'].values,  # ditch water level
-                                tdata[ 'RH'].values, # precipirtation
-                                tdata['EV24'].values, # evapotranpiration
-                                tdata[ 'h1'].values,  # phi, head in regional aqufier
-                                tdata['hdr'].values)): # (tile) drainage elevation
-            N = RH - EV24
-            t = t1 - dt   # initialize t0, begining of time step
-            hh = np.array([h0[i], 0])
-            loop_counter = 0
-            while t < t1:
-                loop_counter += 1
-                if loop_counter == 100:
-                    print("Warning iteration {:i} no convergence!".format(i))
-                    break
 
-                w_    = wo if hh[0] <= hlr else wi # in or outflow resistance depedning on h - hLE
-                if   hh[0] > hdr + tol:   cdr_ = np.inf
-                elif hh[0] < hdr - tol:   cdr_ = cdr
-                else:
-                    lam    = np.sqrt(k * D * c)
-                    Lamb   = 1 / ((b / lam) / np.tanh(b / lam) + (w_ / D) * (c / b))
-                    rising = (phi - hh[0]) + (N * c - Lamb * (N * c - (hlr - phi))) > 0
-                    if rising:      cdr_ = np.inf
-                    else:           cdr_ = cdr
-                ch     = c  / (1 + c / cdr_)    # c_hat (see theory)
-                Th     = mu * ch
-                phih   = (phi + (c / cdr_) * hdr) / (1 + c / cdr_)
-                lamh   = np.sqrt(k * D * ch)
-                Lambh  = 1 / ((b / lamh) / np.tanh(b / lamh) + (w_ / D) * (ch / b))
-                B      = N * ch - Lambh * (N * ch - (hlr - phih))
-                r      = (hh[0] - phih - B) / (hdr - phih - B)
-                if r > 1:
-                    dtau = Th * np.log(r) # estimate time step until crossing hdr
-                    if t + dtau > dt:
-                        dtau = t1 - t # limit to within current time step
-                else:
-                    dtau = t1 - t
-                e = np.exp(-dtau / Th)
-                f = (1 - e) / (dtau / Th)
-                hh[1] = phih + (hh[0] - phih) * e + (
-                    N * ch - Lambh * (N * ch - (hlr - phih))) * (1 - e)
-                hm     = phih + (hh[0] - phih) * f + (
-                    N * ch - Lambh * (N * ch - (hlr - phih))) * (1 - f)
-                qs0[i] += mu * np.diff(hh) / dtau * (dtau / dt)
-                qv0[i] += (phi - hm) / c   * f * dtau / dt
-                qdr[i] += (hm  - hdr) / cdr * f * dtau / dt
-                hh[0] = hh[1]
-                t += dtau
-            qb0[i] += N + qv0[i] - qdr[i] - qs0[i]
-            h0[i+1] = hh[1]
+        print('Simulating {}'.format(solution_name))
 
-        # Gather results and store in tdata columns
-        tdata['h0']    = h0[1:]
-        tdata['qs0']   = qs0
-        tdata['qv0']   = qv0
-        tdata['qdr']   = qdr
-        qN  = (tdata['RH'] - tdata['EV24']).values
-        tdata['qb0']   = qN + tdata['qv0'] - tdata['qdr'] - tdata['qs0']
-        tdata['qsum0'] = qN + tdata['qv0'] - tdata['qdr'] - tdata['qb0'] -tdata['qs0']
-        tdata['qv1']   = -tdata['qv0']
-        tdata['qb1']   = 0.       # no ditches
-        tdata['qs1']   = S * np.diff(np.hstack((tdata['h1'].values, tdata['h1'][-1]))) /Dt
-        tdata['q1']    = tdata['qs1'] + tdata['qv0'] + tdata['qb1']    # undefined because phi is given
-        tdata['qsum1'] = tdata['q1'] - tdata['qs1'] - tdata['qv0'] - tdata['qb1']
-        print('sum(abs(qsum0)) = {}, sum(abs(qsum1)) = {} m/d'.
-              format(tdata['qsum0'].abs().sum(), tdata['qsum1'].abs().sum()))
+        for ip in range(len(parcel_data)):
 
-    elif solution_name == 'L1q': # for given q (f)
-        check_cols(tdata, ['q'])
-        for i, (dt, t1, hlr, RH, EV24, q, hdr) in enumerate(zip(
-                                Dt,                  # time step
-                                np.cumsum(Dt),       # t1 (end of time step)
-                                tdata[ 'hLR'].values,  # ditch water level
-                                tdata[  'RH'].values, # precipirtation
-                                tdata['EV24'].values, # evapotranpiration
-                                tdata[   'q'].values,   # injection in lower aquifer
-                                tdata[ 'hdr'].values)): # (tile) drainage elevation
-            N = RH - EV24
-            hh = np.array([[h0[i], 0],
-                           [h0[i], 0]])
-            if i == 400:
-                print('i =' , i)
-            for iter in range(2): # iterate over phi because q is given
+            print('Parcel {}'.format(ip), end='')
+
+            props = parcel_data.iloc[ip]
+
+            # Extract tdata for single-layer problem
+            b, c, wo, wi = props['b'], props['c_CB'], props['wo_ditch'], props['wi_ditch']
+            mu, S, k, D  =  props['sy'], props['S2'], props['kh'], props['D1']
+            cdr, hdr     = props['c_drain'], props['AHN'] - props['d_drain']
+
+            w_ghb = wi
+            w_riv = np.inf if wi < wo + wtol else wi * wo / (wi - wo)
+
+            hLR = np.zeros((nper)) * props['h_winter']; hLR[tdata['summer']] = props['h_summer']
+
+            # add columne phi to tdata, using data from props
+            tdata['phi'] = add_var_to_tseries(tdata, var='phi', props=props)
+
+            # Initialize head in top layer and regional aquifer
+            h0 = np.ones(len(tdata) + 1) * hLR[0] # initialize h0, first aquifer
+            h1 = np.ones(len(tdata) + 1) * tdata['phi'].iloc[0] # initialize h1, second aquifer (phi)
+
+            # Fluxes computed on the go
+            qs0 = np.zeros(len(tdata))
+            qv0 = np.zeros(len(tdata))
+            qdr = np.zeros(len(tdata))
+            qb0 = np.zeros(len(tdata))
+
+            htol = 1e-3
+            check_cols(tdata, [])
+            tdata['q_up'] = np.NaN
+            for it, (dt, t1, hlr, RH, EV24, phi) in enumerate(zip(
+                                    Dt,                  # time step
+                                    np.cumsum(Dt),       # t1 (end of time step)
+                                    hLR,  # ditch water level
+                                    tdata[ 'RH'].values, # precipirtation
+                                    tdata['EV24'].values,
+                                    tdata['phi'].values)): # evapotranpiration
+                N = RH - EV24
+                t = t1 - dt   # initialize t0, begining of time step
+                hh = np.array([h0[it], 0])
                 loop_counter = 0
-                phi = hh[iter][0] + q * c
-                t = t1 - dt
+                # Iterate in case drainage switches on or off during the time step
                 while t < t1:
                     loop_counter += 1
                     if loop_counter == 100:
-                        print("Warning iteration {:i} no convergence!".format(i))
+                        print("Warning iteration {:it} no convergence!".format(it))
                         break
-
-                    w_    = wo if hh[iter][0] <= hlr else wi # in or outflow resistance depedning on h - hLE
-                    if   hh[iter][0] > hdr + tol:   cdr_ = np.inf
-                    elif hh[iter][0] < hdr - tol:   cdr_ = cdr
+                    # in or outflow resistance depeds on h - hLR
+                    # No further iterations. It wasn't necessary
+                    w_    = wo if hh[0] <= hlr else wi
+                    # Is drainage switching on?
+                    if   hh[0] > hdr + htol:   cdr_ = np.inf
+                    elif hh[0] < hdr - htol:   cdr_ = cdr
                     else:
                         lam    = np.sqrt(k * D * c)
                         Lamb   = 1 / ((b / lam) / np.tanh(b / lam) + (w_ / D) * (c / b))
-                        rising = (phi - hh[iter][0]) + (N * c - Lamb * (N * c - (hlr - phi))) > 0
+                        rising = (phi - hh[0]) + (N * c - Lamb * (N * c - (hlr - phi))) > 0
                         if rising:      cdr_ = np.inf
                         else:           cdr_ = cdr
                     ch     = c  / (1 + c / cdr_)    # c_hat (see theory)
@@ -407,7 +542,7 @@ def single_Layer_transient(solution_name, props=None, tdata=None):
                     lamh   = np.sqrt(k * D * ch)
                     Lambh  = 1 / ((b / lamh) / np.tanh(b / lamh) + (w_ / D) * (ch / b))
                     B      = N * ch - Lambh * (N * ch - (hlr - phih))
-                    r      = (hh[iter][0] - phih - B) / (hdr - phih - B)
+                    r      = (hh[0] - phih - B) / (hdr - phih - B)
                     if r > 1:
                         dtau = Th * np.log(r) # estimate time step until crossing hdr
                         if t + dtau > dt:
@@ -416,65 +551,180 @@ def single_Layer_transient(solution_name, props=None, tdata=None):
                         dtau = t1 - t
                     e = np.exp(-dtau / Th)
                     f = (1 - e) / (dtau / Th)
-                    hh[iter][1] = phih + (hh[iter][0] - phih) * e + (
+                    hh[1] = phih + (hh[0] - phih) * e + (
                         N * ch - Lambh * (N * ch - (hlr - phih))) * (1 - e)
-                    hm     = phih + (hh[iter][0] - phih) * f + (
+                    hm     = phih + (hh[0] - phih) * f + (
                         N * ch - Lambh * (N * ch - (hlr - phih))) * (1 - f)
-                    qs0[i] += mu * np.diff(hh[iter]) / dtau * (dtau / dt)
-                    qv0[i] += (phi - hm) / c   * f * dtau / dt
-                    qdr[i] += (hm  - hdr) / cdr * f * dtau / dt
-                    hh[iter][0] = hh[iter][1]
+                    qs0[it] += mu * np.diff(hh) / dtau * (dtau / dt)
+                    qv0[it] += (phi - hm) / c    * f * dtau / dt
+                    qdr[it] += (hm  - hdr) / cdr * f * dtau / dt
+                    hh[0] = hh[1]
                     t += dtau
-                qb0[i] += N + qv0[i] - qdr[i] - qs0[i]
-                if iter == 0:
-                    hh[iter + 1][0] = hh[iter][1]
-            # results below divided by 2 due to iteration iter
-            h0[i+1] = hh[:, 1].mean() # mean of the two iterations at t1
-            h1[i+1] = (h0[i] + h0[i+1]) / 2 + q * c
-            qs0[i] /= 2 # due to iter, 2 loops
-            qv0[i] /= 2
-            qdr[i] /= 2
-            qb0[i] /= 2
+                qb0[it] += N + qv0[it] - qdr[it] - qs0[it]
+                h0[it+1] = hh[1]
 
-        # Gather results and store in tdata columns
-        tdata['h0']    = h0[1:]
-        tdata['h1']    = h1[1:]
-        tdata['hdr']   = hdr
-        tdata['qs0']   = qs0
-        tdata['qv0']   = qv0
-        tdata['qdr']   = qdr
-        qN  = (tdata['RH'] - tdata['EV24']).values
-        tdata['qb0']   = qN + tdata['qv0'] - tdata['qdr'] - tdata['qs0']
-        tdata['qsum0'] = qN + tdata['qv0'] - tdata['qdr'] - tdata['qb0'] -tdata['qs0']
-        tdata['qs1']   = S * np.diff(h1) / Dt
-        tdata['qv1']   = -tdata['qv0']
-        tdata['qb1']   = 0.       # no ditches
-        tdata['q1']    = tdata['q']    # undefined because phi is given
-        tdata['qsum1'] = tdata['q1'] + tdata['qv1'] - tdata['qs1'] - tdata['qb1']
-        print('sum(abs(qsum0)) = {} m/d, sum(abs(qsum1)) = {} m/d'.
-              format(tdata['qsum0'].abs().sum(), tdata['qsum1'].abs().sum()))
-    elif solution_name == 'xxL1q': # For given q
-        # Direct computation with given q
+                if it % 100 == 0: print('.', end='')
+            HDS.data[0, ip, :] = h0[1:]
+            HDS.data[1, ip, :] = h1[1:]
+
+            qb0 = N + qv0 - qdr - qs0
+
+            L_out = h0[1:] > hLR # Outflow to ditch, then split over GHB and RIV
+            L_in  = NOT(L_out)
+
+            CBC.data['RCH'][0][0, ip, :] =  tdata['RH'].values
+            CBC.data['EVT'][0][0, ip, :] = -tdata['EV24'].values
+            CBC.data['DRN'][0][0, ip, :] =  qdr[:] #tdata['qdr']   = qdr
+            CBC.data['GHB'][0][0, ip, L_in ] = qb0[L_in]
+            CBC.data['GHB'][0][0, ip, L_out] = qb0[L_out] * w_riv / (w_ghb + w_riv) # qb0
+            CBC.data['RIV'][0][0, ip, L_out] = qb0[L_out] * w_ghb / (w_ghb + w_riv)
+            CBC.data['STO'][0][0, ip, :] =  qs0[:] #tdata['qs0']   = qs0
+            CBC.data['STO'][0][1, ip, :] = S * np.diff(h1) / Dt
+            CBC.data['FLF'][0][0, ip, :] =  qv0[:] #tdata['qv0']   =  qv0
+            CBC.data['FLF'][0][1, ip, :] = -qv0[:] #tdata['qv1']   = -qv0
+            CBC.data['WEL'][0][1, ip, :] =  S * np.diff(h1) / Dt + qv0 # undetermined because phi is given
+            print(it)
+        print('Done.')
+
+
+    elif solution_name == 'L1q': # for given q_up (f)
+
+        print('Sumulating {}'.format(solution_name))
+
+        for ip in range(len(parcel_data)):
+            print('Parcel {}'.format(ip), end='')
+            props = parcel_data.iloc[ip]
+
+            b, c, wo, wi = props['b'], props['c_CB'], props['wo_ditch'], props['wi_ditch']
+            mu, S, k     =  props['sy'], props['S2'], props['kh']
+            cdr, hdr     = props['c_drain'], props['AHN'] - props['d_drain']
+            phi, D       = props['phi'], props['D1']
+
+            w_ghb = wi
+            w_riv = np.inf if wi < wo + wtol else wi * wo / (wi - wo)
+
+            hLR = np.zeros((nper)) * props['h_winter']
+            hLR[tdata['summer']] = props['h_summer']
+            h0 = np.ones(nper + 1)
+            h1 = np.zeros(nper + 1)
+            h0[0] = hLR[0]
+            h1[0] = hLR[0] # not used here.
+
+            # Fluxes computed on the go
+            qs0 = np.zeros(len(tdata))
+            qv0 = np.zeros(len(tdata))
+            qdr = np.zeros(len(tdata))
+            qb0 = np.zeros(len(tdata))
+
+            # add column q_up to tdata, using data from props
+            tdata['q_up'] = add_var_to_tseries(tdata, var='q_up', props=props)
+
+            for it, (dt, t1, hlr, RH, EV24, q_up) in enumerate(zip(
+                                    Dt,                   # time step
+                                    np.cumsum(Dt),        # t1 (end of time step)
+                                    hLR,                  # ditch water level
+                                    tdata[  'RH'].values, # precipirtation
+                                    tdata['EV24'].values, # evaoptranspiration
+                                    tdata['q_up'].values, # upward seepage series
+                                    )):
+                N = RH - EV24
+                hh = np.array([[h0[it], 0],
+                               [h0[it], 0]])
+                for iter in range(2): # iterate over phi because q_up is given
+                    loop_counter = 0
+                    phi = hh[iter][0] + q_up * c
+                    t = t1 - dt
+                    while t < t1:
+                        loop_counter += 1
+                        if loop_counter == 100:
+                            print("Warning iteration {:it} no convergence!".format(it))
+                            break
+
+                        w_    = wo if hh[iter][0] <= hlr else wi # in or outflow resistance depedning on h - hLE
+                        if   hh[iter][0] > hdr + htol:   cdr_ = np.inf
+                        elif hh[iter][0] < hdr - htol:   cdr_ = cdr
+                        else:
+                            lam    = np.sqrt(k * D * c)
+                            Lamb   = 1 / ((b / lam) / np.tanh(b / lam) + (w_ / D) * (c / b))
+                            rising = (phi - hh[iter][0]) + (N * c - Lamb * (N * c - (hlr - phi))) > 0
+                            if rising:      cdr_ = np.inf
+                            else:           cdr_ = cdr
+                        ch     = c  / (1 + c / cdr_)    # c_hat (see theory)
+                        Th     = mu * ch
+                        phih   = (phi + (c / cdr_) * hdr) / (1 + c / cdr_)
+                        lamh   = np.sqrt(k * D * ch)
+                        Lambh  = 1 / ((b / lamh) / np.tanh(b / lamh) + (w_ / D) * (ch / b))
+                        B      = N * ch - Lambh * (N * ch - (hlr - phih))
+                        r      = (hh[iter][0] - phih - B) / (hdr - phih - B)
+                        if r > 1:
+                            dtau = Th * np.log(r) # estimate time step until crossing hdr
+                            if t + dtau > dt:
+                                dtau = t1 - t # limit to within current time step
+                        else:
+                            dtau = t1 - t
+                        e = np.exp(-dtau / Th)
+                        f = (1 - e) / (dtau / Th)
+                        hh[iter][1] = phih + (hh[iter][0] - phih) * e + (
+                            N * ch - Lambh * (N * ch - (hlr - phih))) * (1 - e)
+                        hm     = phih + (hh[iter][0] - phih) * f + (
+                            N * ch - Lambh * (N * ch - (hlr - phih))) * (1 - f)
+                        qs0[it] += mu * np.diff(hh[iter]) / dtau * (dtau / dt)
+                        qv0[it] += (phi - hm) / c   * f * dtau / dt
+                        qdr[it] += (hm  - hdr) / cdr * f * dtau / dt
+                        hh[iter][0] = hh[iter][1]
+                        t += dtau
+                    qb0[it] += N + qv0[it] - qdr[it] - qs0[it]
+                    if iter == 0:
+                        hh[iter + 1][0] = hh[iter][1]
+                # results below divided by 2 due to iteration iter
+                h0[it+1] = hh[:, 1].mean() # mean of the two iterations at t1
+                h1[it+1] = (h0[it] + h0[it+1]) / 2 + q_up * c
+
+                qs0[it] /= 2 # due to iter, 2 loops
+                qv0[it] /= 2
+                qdr[it] /= 2
+                qb0[it] /= 2
+                if it % 100 == 0: print('.', end='')
+
+            # Gather results and store in tdata columns
+            L_out = h0[1:] > hLR # Outflow to ditch, then split over GHB and RIV
+            L_in  = NOT(L_out)
+
+            HDS.data[0, ip, :] = h0[1:]
+            HDS.data[1, ip, :] = h1[1:]
+            CBC.data['RCH'][0][0, ip, :] =  tdata['RH'].values
+            CBC.data['EVT'][0][0, ip, :] = -tdata['EV24'].values
+            CBC.data['DRN'][0][0, ip, :] =  qdr      #tdata['qdr']   = qdr
+            CBC.data['GHB'][0][0, ip, L_out] =  qb0[L_out]
+            CBC.data['GHB'][0][0, ip, L_in ] =  qb0[L_in ] * w_riv / (w_riv + w_ghb)
+            CBC.data['RIV'][0][0, ip, L_in ] =  qb0[L_in ] * w_ghb / (w_riv + w_ghb)
+            CBC.data['STO'][0][0, ip, :] =  qs0      #tdata['qs0']   = qs0
+            CBC.data['STO'][0][1, ip, :] =  S * np.diff(h1) / Dt # tdata['qs1']
+            CBC.data['FLF'][0][0, ip, :] = +qv0      #tdata['qv0']   = qv0
+            CBC.data['FLF'][0][1, ip, :] = -qv0      #tdata['qv1']   = qv1
+            CBC.data['WEL'][0][1, ip, :] =  q_up # prescribed
+            print(it)
+        print('Done.')
+
+    elif solution_name == 'xxL1q': # For given q_up
+        # Direct computation with given q_up
         lamb = np.sqrt(k * D * c)
-        for i, (dt, hlr, RH, EV24, q) in enumerate(zip(Dt,
+        for it, (dt, hlr, RH, EV24, q_up) in enumerate(zip(Dt,
                                 tdata['hLR'].values,
                                 tdata['RH'].values,
                                 tdata['EV24'].values,
-                                tdata['q'].values)):
+                                tdata['q_up'].values)):
             n = RH - EV24
-            w_ = wo if h0[i] < hlr else wi
-            Lamb[i] = 1 / ((b / lamb) / np.tanh(b / lamb) + (w_ / D) * (c  / b))
-            T = mu * c / Lamb[i]
+            w_ = wo if h0[it] < hlr else wi
+            Lamb[it] = 1 / ((b / lamb) / np.tanh(b / lamb) + (w_ / D) * (c  / b))
+            T = mu * c / Lamb[it]
             e = np.exp(-dt / T)
-            h0[i + 1] =  hlr + (h0[i] - hlr) * e + (c * (n + q) * (1 - Lamb[i]) / Lamb[i]) * (1 - e)
+            h0[it + 1] =  hlr + (h0[it] - hlr) * e + (c * (n + q_up) * (1 - Lamb[it]) / Lamb[it]) * (1 - e)
     else:
         raise ValueError("Don't recognize solution name <{}>".
                          format(solution_name))
 
-    Phi = np.vstack((h0[1:], h1[1:])).T
-    HDS = HDS_obj(hds=Phi, tindex=tdata.index)
-
-    return tdata, HDS
+    return tdata, HDS, CBC
 
 def single_layer_steady(solution_name, props=None, tdata=None, dx=1.0):
     """Return simulated results for cross section.
@@ -488,8 +738,8 @@ def single_layer_steady(solution_name, props=None, tdata=None, dx=1.0):
         required properties of the system
     tdata: dict or pd.DataFrame
         Data for w hich to simulate the steady situation.
-        If dict, it must contain 'RH', 'EV24', 'q' or ''h1' depending on the case.
-        if pd.DataFrame, it must contain columns 'RH', 'EV24', 'q' or 'h1', depending on
+        If dict, it must contain 'RH', 'EV24', 'q_up' or ''h1' depending on the case.
+        if pd.DataFrame, it must contain columns 'RH', 'EV24', 'q_up' or 'h1', depending on
         the specific case.
         If dict, the average situation is computed as a steady-state cross section.
     dx: float
@@ -500,22 +750,27 @@ def single_layer_steady(solution_name, props=None, tdata=None, dx=1.0):
     D = props['D1']
     lam = np.sqrt(k * D * c)
 
+    tdata = tdata.copy()
+
+    tdata['hLR'] = np.ones(len(tdata)) * props['h_winter']
+    tdata['hLR'].loc[tdata['summer']] = props['h_summer']
+
     # X coordinages
     x = np.hstack((np.arange(0, b, dx), b)).unique() # make sure b is included
     x = np.hstack((x[::-1]), x[1:]) # generate for total section -b < x < b
 
-    if isinstance(tdata, pd.DataFrame):
-        check_cols(tdata, ['RH', 'EV24', 'hLR', 'h1'])
-        if solution_name == 'L1q':
-            check_cols(tdata, ['h0', 'q'])
+    if solution == 'L1q':
+        tdata = add_var_to_tseries(tdata, var='q_up', props=props)
+    else:
+        tdata = add_var_to_tseries(tdata, var='phi', props=props)
 
-        tdata = dict(tdata.mean()) # turn DataFrame into a Series
-        N = tdata['RH'] - tdata['EV24']
+    tdata = dict(tdata.mean()) # turn DataFrame into a Series
+    N = tdata['RH'] - tdata['EV24']
 
     #TODO better implement wo and wi here
     w = 0.5 * (wo + wi)
     Lamb = 1 / (b  / lam / np.tanh(b  / lam) + (b /c) / (D / w))
-    phi = tdata['h1'] if not (solution_name in ['L1q']) else tdata['h0'] - tdata['q'] * c
+    phi = tdata['phi'] if solution_name == 'L1f' else tdata['h0'] - tdata['q_up'] * c
 
     hx = phi + N * c - (N * c - (tdata['hLR'] - phi)
                     ) * Lamb * (b / lam) * np.cosh(x / lam) / np.sinh(b / lam)
@@ -628,7 +883,7 @@ def multi_layer_steady(props=None, tdata=None, dx=1., plot=True, **kwargs):
     return Phi
 
 
-def multi_layer_transient(props=None, tdata=None,  check=True, **kwargs):
+def multi_layer_transient(parcel_data=None, tdata=None,  check=True, **kwargs):
     """Return steady 2layer dynamic solution for symmetrial cross section.
 
     The code can deal with multiple layers. But for sake of limiting the input
@@ -682,226 +937,167 @@ def multi_layer_transient(props=None, tdata=None,  check=True, **kwargs):
 
     @TO 20200701
     """
-    def check_shape(nm, var, nLay=2, ncol=2):
-        """Verify parameter shape.
-
-        Parameters
-        ----------
-        nm: str
-            parameter name
-        p: np.array
-            parameter
-        nLay: int
-            number of rows required
-        """
-        var = np.asarray(var)
-        assert var.shape[0] >= nLay, AssertionError(f"{nm} must have at least {nLay} rows.")
-        assert var.shape[1] >= ncol, AssertionError(f"{nm} must have at least {ncol} columns.")
-        return var[:nLay, :ncol] if ncol > 1 else var[:nLay, ncol]
-
     nLay = 2
     tdata = tdata.copy() # keep original tdata intact
-    idx = tdata.index
+
+    Dt  = np.hstack(((tdata.index[1] - tdata.index[0]) / np.timedelta64(1, 'D'),
+                     np.diff((tdata.index - tdata.index[0]) / np.timedelta64(1, 'D'))))
+
+    HDS = HDS_obj(tdata=tdata, parcel_data=parcel_data)
+    CBC = CBC_obj(tdata=tdata, parcel_data=parcel_data)
+
+    print('Simularing {}'.format('multi-layer transient.'))
+
+    for ip in range(len(parcel_data)):
+        print('Parcel {}'.format(ip), end='')
+        props = parcel_data.iloc[ip]
+
+        b = props['b']
+        c  = np.array([props['c_drain'], props['c_CB'], np.inf])[:, np.newaxis]
+        hdr = props['AHN'] - props['h_drain']
+        w  = np.array([props['wo_ditch'], props['wi_ditch']])[np.newaxis, ] * np.ones((nLay, 1))
+        assert np.all(w[:, 0] >= w[:, 1]), AssertionError("All w[:,0] must be >= w[:, 1]")
+
+        S  = np.array([props['sy'], props[ 'S2']])[:, np.newaxis]
+        kh = np.array([props['kh'], props['kh2']])[:, np.newaxis]
+        D  = np.array([props['D1'], props[ 'D2']])[:, np.newaxis]
+        kD = kh * D
+
+        Am2, Am1, A1, A2 = sysmat(c, kD)
+
+        T   = np.diag(kD) # transmissivity
+        Tm1 = la.inv(T)
+
+        # unifrom injection into each aquifer
+        q   = np.zeros((nLay, len(tdata)))
+        q[0, :] = (tdata['RH'] - tdata['EV24']).values[:]
+        q[1, :] =  tdata['q'].values[:]
+
+        # Leakage from top aquifer i.e. hdr / (cdr * kD0)
+        g = np.zeros((nLay, len(tdata)))
+        g[0, :]  = props['h_drain'] / props['c_drain'] # this may be made time variable
+
+        coshmb = la.coshm(Am1 * b)
+        sinhmb = la.sinhm(Am1 * b)
+        I = np.eye(len(kD))
+
+        # Compute Phi for all x-values
+        G    = A2 @ Tm1 @ np.diag(S)
+        E, V = la.eig(G)
+        Em1  = la.inv(np.diag(E))
+        Vm1 = la.inv(V)
+
+        # Initialize time steps and heads
+        Phi = np.zeros((2, len(tdata) + 1))
+        Phi[:, 0] = tdata['hLR'].iloc[0]
+        qb = np.zeros_like(q) # from layers to boundary at x=b
+
+        # Loop over time steps
+        for it, (dt, hlr) in enumerate(zip(Dt, tdata['hLR'])):
+            hLR = hlr * np.ones((nLay, 1))
+
+            # infiltration or exfiltration ?
+            w_ = (w[:, 0] * (Phi[:, it] < hLR[:, 0]) + w[:,1] * (Phi[:, it] >= hLR[:, 0]))[:, np.newaxis]
+            Kw = np.diag(kh * w_)
+            F = la.inv(coshmb + Kw @ Am1 @ sinhmb)
+
+            e = la.expm(-Em1 * dt)
+            hq = A2 @ Tm1 @ (q[:, it:it+1] + g[:, it:it+1])
+            qb[:, it:it+1] = T @ Am1 / b @ sinhmb @ F @ (hq - hLR)
+
+            # steady state ultimate solution for t->inf
+            hss = A2 @ Tm1 @ (q[:,it:it+1] + g[:, it:it+1] - qb[:,it:it+1])
+
+            # Compute head
+            Phi[:, it + 1 : it + 2] = V @ e @ Vm1 @  Phi[:, it : it + 1] + V @ (I - e) @ Vm1 @ hss
+
+            if it % 100 == 0: print('.', end='')
+
+        Phim = (Phi[:,:-1] + Phi[:, 1:]) / 2
+        qs = S[:, np.newaxis] * np.diff(Phi, axis=1) / Dt  # from top layer into storage
+
+        # leakage through aquitards fram all layers
+        ql = np.zeros_like(q)
+        for it in range(len(Dt)):
+            ql[:,it:it+1] = T @ Am2 @ Phim[:, it:it+1] - g[:, it:it+1]
+
+        Phi = Phi[:, 1:] # cut off first day (before first tdata in index)
+
+        # Store results
+        HDS.data[:, ip, :] = Phi
+        CBC.data['STO'][:, ip, :] = qs
+        CBC.data['RCH'][0, ip, :] = tdata['RH'].values
+        CBC.data['EVT'][0, ip, :] = tdata['EV24'].values
+        CBC.data['DRN'][0, ip, :] = ql[0] - ql[1]
+        CBC.data['FLF'][0, ip, :] =-ql[1]
+        CBC.data['FLF'][1, ip, :] = ql[1]     #tdata['ql1'] = ql[1]  # leakage from bo1 layer
+        CBC.data['GHB'][0, ip, :] = q[0] - qs[0] - ql[0]
+        CBC.data['GHB'][0, ip, :] = q[1] - qs[1] - ql[1]
+        CBC.data['WEL'][1, ip, :] = q[1]
+        print('it')
+    print('Done!')
+
+        #tdata['qs0'] = qs[0]  # into storage top layer
+        #tdata['qs1'] = qs[1]  # into stroage in bot layer
+        #tdata['q0']  = q[0]   # injection into top layer (RH - EV24)
+        #tdata['q1']  = q[1]   # injectino into bot layer
+        #tdata['ql0'] = ql[0]  # leakage from top layer
+        #tdata['ql1'] = ql[1]  # leakage from bog layer
+        #tdata['qb00'] = qb[0]  # to ditch from top layer
+        #tdata['qb0'] = tdata['q0'] - tdata['qs0'] - tdata['ql0']
+        #tdata['qb10'] = qb[1]  # to dicht from second layer
+        #tdata['qb1'] = tdata['q1'] - tdata['qs1'] - tdata['ql1']
+        #tdata['qdr'] = (Phim[0] - hdr) / props['c_drain']      # to drain from top layer
+        #tdata['qv0'] = (Phim[1] - Phim[0]) / c[1] # to top layer from bot layer
+        #tdata['qv1'] = -tdata['qv0']               # to bot layer from top layer
+        #tdata['sumq0'] = tdata['q0'] - tdata['qs0'] - tdata['qb0'] - tdata['ql0'] # water balance top layer
+        #tdata['sumq1'] = tdata['q1'] - tdata['qs1'] - tdata['qb1'] - tdata['ql1'] # water balance bot layer
+        #tdata['sumq01'] = tdata['q0'] - tdata['qs0'] - tdata['qb0'] - tdata['qdr'] + tdata['qv0']
+        #tdata['sumq11'] = tdata['q1'] - tdata['qs1'] - tdata['qb1'] - tdata['qv0']
+
+        # note that it must also be valid that q0 = qv0 - qde
+
+        # if check:
+        #     """Check the water budget."""
+
+        #     print('\n\nFirst water balance:')
+        #     # show the water balance
+        #     ttl_ = ['supply', 'storage', 'toDitch', 'leakage', 'sumq' ]
+        #     ttl0 = ['q0', 'qs0', 'qb0', 'ql0', 'sumq0']
+        #     ttl1 = ['q1', 'qs1', 'qb1', 'ql1', 'sumq1']
+
+        #     mxcols = pd.options.display.max_columns
+        #     pd.options.display.max_columns = len(ttl_) + 1
+
+        #     print("\nWater balance first layer")
+        #     print('                  ', ' '.join([f"{k:10s}" for k in ttl_]))
+        #     print(tdata[ttl0])
+
+        #     print("\nWater balance second layer")
+        #     print('                  ', ' '.join([f"{k:10s}" for k in ttl_]))
+        #     print(tdata[ttl1])
+        #     print()
+        #     pd.options.display.max_columns = mxcols
+
+        #     print('\n\nSecond water balance:')
+        #     # show the water balance
+        #     ttl0_ = ['supply', 'storage', 'toDitch', 'drn', 'leak', 'sumq' ]
+        #     ttl0  = ['q0',     'qs0',     'qb0',     'qdr', 'qv0', 'sumq01']
+        #     ttl1_ = ['supply', 'storage', 'toDitch', 'drn', 'leak', 'sumq' ]
+        #     ttl1  = ['q1',     'qs1',     'qb1',     'qv1',        'sumq11']
+
+        #     print("\nWater balance first layer")
+        #     print('                  ', ' '.join([f"{k:10s}" for k in ttl0_]))
+        #     print(tdata[ttl0])
+
+        #     print("\nWater balance second layer")
+        #     print('                  ', ' '.join([f"{k:10s}" for k in ttl1_]))
+        #     print(tdata[ttl1])
+        #     print()
+        #     pd.options.display.max_columns = mxcols
 
 
-    b = props['b']
-    c  = np.array([props['c_drain'], props['c_CB'], np.inf])[:, np.newaxis]
-    hdr = props['AHN'] - props['h_drain']
-    w  = np.array([props['wo_ditch'], props['wi_ditch']])[np.newaxis, ] * np.ones((nLay, 1))
-    assert np.all(w[:, 0] >= w[:, 1]), AssertionError("All w[:,0] must be >= w[:, 1]")
-
-    S  = np.array([props['sy'], props[ 'S2']])[:, np.newaxis]
-    kh = np.array([props['kh'], props['kh2']])[:, np.newaxis]
-    D  = np.array([props['D1'], props[ 'D2']])[:, np.newaxis]
-    kD = kh * D
-
-    Am2, Am1, A1, A2 = sysmat(c, kD)
-
-    T   = np.diag(kD) # transmissivity
-    Tm1 = la.inv(T)
-
-    # unifrom injection into each aquifer
-    q   = np.zeros((nLay, len(tdata)))
-    q[0, :] = (tdata['RH'] - tdata['EV24']).values[:]
-    q[1, :] =  tdata['q_up'].values[:]
-
-    # Leakage from top aquifer i.e. hdr / (cdr * kD0)
-    g = np.zeros((nLay, len(tdata)))
-    g[0, :]  = props['h_drain'] / props['c_drain'] # this may be made time variable
-
-    coshmb = la.coshm(Am1 * b)
-    sinhmb = la.sinhm(Am1 * b)
-    I = np.eye(len(kD))
-
-    # Compute Phi for all x-values
-    G    = A2 @ Tm1 @ np.diag(S)
-    E, V = la.eig(G)
-    Em1  = la.inv(np.diag(E))
-    Vm1 = la.inv(V)
-
-    # Initialize time steps and heads
-    Dt  = np.hstack(((idx[1] - idx[0]) / np.timedelta64(1, 'D'), np.diff((idx - idx[0]) / np.timedelta64(1, 'D'))))
-    Phi = np.zeros((2, len(tdata) + 1))
-    Phi[:, 0] = tdata['hLR'].iloc[0]
-    qb = np.zeros_like(q) # from layers to boundary at x=b
-
-    # Loop over time steps
-    for it, (dt, hlr) in enumerate(zip(Dt, tdata['hLR'])):
-        hLR = hlr * np.ones((nLay, 1))
-
-        # infiltration or exfiltration ?
-        w_ = (w[:, 0] * (Phi[:, it] < hLR[:, 0]) + w[:,1] * (Phi[:, it] >= hLR[:, 0]))[:, np.newaxis]
-        Kw = np.diag(kh * w_)
-        F = la.inv(coshmb + Kw @ Am1 @ sinhmb)
-
-        e = la.expm(-Em1 * dt)
-        hq = A2 @ Tm1 @ (q[:, it:it+1] + g[:, it:it+1])
-        qb[:, it:it+1] = T @ Am1 / b @ sinhmb @ F @ (hq - hLR)
-
-        # steady state ultimate solution for t->inf
-        hss = A2 @ Tm1 @ (q[:,it:it+1] + g[:, it:it+1] - qb[:,it:it+1])
-
-        # Compute head
-        Phi[:, it + 1 : it + 2] = V @ e @ Vm1 @  Phi[:, it : it + 1] + V @ (I - e) @ Vm1 @ hss
-
-    Phim = (Phi[:,:-1] + Phi[:, 1:]) / 2
-    qs = S[:, np.newaxis] * np.diff(Phi, axis=1) / Dt  # from top layer into storage
-
-    # leakage through aquitards fram all layers
-    ql = np.zeros_like(q)
-    for it in range(len(Dt)):
-        ql[:,it:it+1] = T @ Am2 @ Phim[:, it:it+1] - g[:, it:it+1]
-
-    Phi = Phi[:, 1:] # cut off first day (before first tdata in index)
-
-
-    HDS = HDS_obj(hds=Phi, tindex=tdata.index)
-
-    # Store results
-    tdata['h0'] = Phi[0]  # head top layer
-    tdata['h1'] = Phi[1]  # head bot layer
-    tdata['hdr'] = hdr
-    tdata['qs0'] = qs[0]  # into storage top layer
-    tdata['qs1'] = qs[1]  # into stroage in bot layer
-    tdata['q0']  = q[0]   # injection into top layer (RH - EV24)
-    tdata['q1']  = q[1]   # injectino into bot layer
-    tdata['ql0'] = ql[0]  # leakage from top layer
-    tdata['ql1'] = ql[1]  # leakage from bog layer
-    #tdata['qb00'] = qb[0]  # to ditch from top layer
-    tdata['qb0'] = tdata['q0'] - tdata['qs0'] - tdata['ql0']
-    #tdata['qb10'] = qb[1]  # to dicht from second layer
-    tdata['qb1'] = tdata['q1'] - tdata['qs1'] - tdata['ql1']
-    tdata['qdr'] = (Phim[0] - hdr) / props['c_drain']      # to drain from top layer
-    tdata['qv0'] = (Phim[1] - Phim[0]) / c[1] # to top layer from bot layer
-    tdata['qv1'] = -tdata['qv0']               # to bot layer from top layer
-    tdata['sumq0'] = tdata['q0'] - tdata['qs0'] - tdata['qb0'] - tdata['ql0'] # water balance top layer
-    tdata['sumq1'] = tdata['q1'] - tdata['qs1'] - tdata['qb1'] - tdata['ql1'] # water balance bot layer
-    tdata['sumq01'] = tdata['q0'] - tdata['qs0'] - tdata['qb0'] - tdata['qdr'] + tdata['qv0']
-    tdata['sumq11'] = tdata['q1'] - tdata['qs1'] - tdata['qb1'] - tdata['qv0']
-
-    # note that it must also be valid that q0 = qv0 - qde
-
-    if check:
-        """Check the water budget."""
-
-        print('\n\nFirst water balance:')
-        # show the water balance
-        ttl_ = ['supply', 'storage', 'toDitch', 'leakage', 'sumq' ]
-        ttl0 = ['q0', 'qs0', 'qb0', 'ql0', 'sumq0']
-        ttl1 = ['q1', 'qs1', 'qb1', 'ql1', 'sumq1']
-
-        mxcols = pd.options.display.max_columns
-        pd.options.display.max_columns = len(ttl_) + 1
-
-        print("\nWater balance first layer")
-        print('                  ', ' '.join([f"{k:10s}" for k in ttl_]))
-        print(tdata[ttl0])
-
-        print("\nWater balance second layer")
-        print('                  ', ' '.join([f"{k:10s}" for k in ttl_]))
-        print(tdata[ttl1])
-        print()
-        pd.options.display.max_columns = mxcols
-
-        print('\n\nSecond water balance:')
-        # show the water balance
-        ttl0_ = ['supply', 'storage', 'toDitch', 'drn', 'leak', 'sumq' ]
-        ttl0  = ['q0',     'qs0',     'qb0',     'qdr', 'qv0', 'sumq01']
-        ttl1_ = ['supply', 'storage', 'toDitch', 'drn', 'leak', 'sumq' ]
-        ttl1  = ['q1',     'qs1',     'qb1',     'qv1',        'sumq11']
-
-        print("\nWater balance first layer")
-        print('                  ', ' '.join([f"{k:10s}" for k in ttl0_]))
-        print(tdata[ttl0])
-
-        print("\nWater balance second layer")
-        print('                  ', ' '.join([f"{k:10s}" for k in ttl1_]))
-        print(tdata[ttl1])
-        print()
-        pd.options.display.max_columns = mxcols
-
-
-    return tdata, HDS # return updated DataFrame
-
-class HDS_obj:
-    """Object to store and retrieve the heads like the on of Modflow."""
-
-    def __init__(self, hds=None, tindex=None):
-        """Return HDS_obj.
-
-        Parameters
-        ----------
-        hds: ndarray
-            heads in shape (nlay, 1, nper)
-        tindex: index like pd.Datrame.index
-            datetimes for hds
-        """
-        if len(hds.shape) == 2:
-            hds = hds.reshape((hds.shape, 1, 1))
-        elif len(hds.shape) == 3:
-            hds = hds.reshape((hds.shape, 1))
-
-        nper, nlay, nrow, ncol = hds.shape # nlay, nparcel, ncol
-
-
-        assert len (tindex) == nper, ValueError(
-            "len(tindex)={} not equql to nper={}".format(len(tindex), nper))
-
-        dtype = [('t', pd.Timestamp, (nper), tindex), ('h', float, (nper, nlay, nrow, ncol))]
-
-        self.hds = np.zeros(1, dtype=dtype)
-
-        self.hds['t'] = tindex
-        self.hds['h'][0] = hds
-
-    def plot(self, selection=None, titles=['top', 'bottom'], xlabel='time',
-             ylabels=['head [m]', 'head [m]'], sharex=True, sharey=True,
-             size_inches=(14, 8)):
-        """Plot the heads.
-
-        Parameters
-        ----------
-        selection: int, sequence or slice
-            which of the parcels to plot
-        """
-        if not selection:
-            selection = slice(0, self.nrow, 1)
-        elif isinstance(selection, int):
-            selection = slice(selection, selection + 1, 1)
-        elif not isinstance(selection (list, tuple, np.ndarray, slice)):
-            raise ValueError("Illegal selection type = {}.".format(
-                type(selection)) + " Use None, int, or a sequence.")
-
-        ax = newfig2(titles, xlabel, ylabels, sharex-sharex, sharey-sharey,
-                     size_inches=size_inches)
-
-        ax[0].plot(self.hds['t'], self.heads[0][:, 0, 0, 0], label='cover layer')
-        ax[1].plot(self.hds['t'], self.heads[0][:, 1, 0, 0], label='regional')
-
-        plot_hydrological_year_boundaries(ax[0])
-        plot_hydrological_year_boundaries(ax[1])
-
-        return ax
+    return tdata, HDS, CBC # return updated DataFrame
 
 
 def getGXG(tdata=None, startyr=None, nyr=8):
@@ -1125,26 +1321,29 @@ def plotGXG(ax=None, tdata=None, startyr=None, nyr=8):
     ax.legend(loc='lower left')
     return
 
-
-def plot_hydrological_year_boundaries(ax=None, startyr=None, nyr=8):
+def plot_hydrological_year_boundaries(ax=None, tindex=None, **kwargs):
     """Plot hydrological year boundaries on a given axis.
 
     Parameters
     ----------
     ax: plt.Axes
         an existing axes with a datatime x-axis
-    staryr: int
-        year of first hydrological year
-    nyr: int
-        numbef of years to include
+    tindex: DateTime index
+        tindex to use for this graph.
+    kwargs: dict
+        passed on to plt.axvline
     """
-    if isinstance(ax, plt.Axes): ax = [ax]
+    years = np.unique(np.array([t.year for t in tindex]))
 
+    if not 'color' in kwargs:
+        kwargs['color'] = 'gray'
+
+    if isinstance(ax, plt.Axes): ax = [ax]
     for a in ax:
-        for iy in np.arange(nyr + 1):
-            t = np.datetime64(f'{startyr + iy}-04-01')
-            a.axvline(t, color='gray', ls=':')
-            a.axvline(t, color='gray', ls=':')
+        for yr in years:
+            t = np.datetime64(f'{yr}-03-14')
+            if t > tindex[0] and t < tindex[-1]:
+                a.axvline(t, ls=':', **kwargs)
 
 # Solution class
 class Solution:
@@ -1155,7 +1354,7 @@ class Solution:
     @TO 2020-07-01
     """
 
-    def __init__(self, props=None):
+    def __init__(self, parcel_data=None):
         """Return an instance of an analytical solution only storing name and properties.
 
         Parameters
@@ -1167,11 +1366,11 @@ class Solution:
             may be omitted from the actual properties.
         """
         self.name = str(self.__class__).split('.')[-1].split("'")[0]
-        self.props = dict(props)
+        self.parcel_data = parcel_data
         return
 
 
-    def check_props(self, props=None):
+    def check_props(self):
         """Return verified properties.
 
         Parameters
@@ -1179,7 +1378,7 @@ class Solution:
         props: dict
             properties of the section to be simulated
         """
-        missing_params = set(self.required_params) - set(props.keys())
+        missing_params = set(self.required_params) - set(self.parcels.columns)
 
         if missing_params:
             raise ValueError('Missing required properties: ({})'.
@@ -1187,21 +1386,15 @@ class Solution:
         return props
 
 
-    def check_cols(self, data=None):
+    def check_tcols(self, tdata=None):
         """Verify input data for presence of required columns.
 
         Parameters
         ----------
-        data: pd.DataFrame
-            Input data with required columns which are
-            'RH', 'EV24', 'hLR', 'q' or 'h1' dep. on self.name.
-
-        Returns
-        -------
-        None
-
+        tdata: pd.DataFrame
+            Input data with required columns which are 'RH', 'EV24'
         """
-        missing_cols = set(['RH', 'EV24', 'hLR']).difference(data.columns)
+        missing_cols = set(['RH', 'EV24']).difference(data.columns)
 
         if missing_cols:
             raise KeyError("{" + " ,".join([f"'{k}'" for k in missing_cols]) + "} are missing.")
@@ -1213,14 +1406,9 @@ class Solution:
         Parameters
         ----------
         tdata: pd.DataFrame with all required time series in columns
-        required columns: 'hLR', 'RH','EV24','q'|'h1'
-            meaning:
-            hLR: [m] ditch water level,
+        required columns: 'RH','EV24'
             RH: [m/d] precipitation
             EV24: [m/d] evap
-            q: [m/d] upward seepage,
-            h1: [m]head in regional aquifer.
-            h0: [m] head above shallow aquifer
 
         Returns
         -------
@@ -1243,10 +1431,54 @@ class Solution:
         The head at the beginning of the first time step is assumed
         equal to that of ditches during the first time step.
         """
-        self.tdata, self.HDS = single_Layer_transient(solution_name=self.name,
-                                          props=self.props,
-                                          tdata=tdata)
+        self.tdata, self.HDS, self.CBC = single_Layer_transient(
+                solution_name=self.name,
+                parcel_data = self.parcel_data,
+                tdata=tdata)
         return
+
+
+    def plot_heads(self, titles=['Heads layer 1', 'Heads layer 2.'],
+             xlabel='time', ylabels=['m', 'm'], selection=None,
+             size_inches=(14, 8), **kwargs):
+        """Plot results of 2 -layer analytical simulation.
+
+        Parameters
+        ----------
+        titles: 2-list of 2-list of titles
+            titles for the two head graphs, titles for the two flow graphs.
+        xlabel: str
+            xlabel
+        ylabels: 2-list of 2-list of titiles
+            y-axis titles for the head graphs and for the flow graphs.
+        selection: None, int, slie or sequence
+            of which parcels to plot the heads (max 5)
+        size_inches: 2 tuple (w, h)
+            Size of each of the two figures.
+        kwargs: dict
+            Additional paramters to pass.
+
+        Returns
+        -------
+        None, however, the axes of the two head and two flow plots
+        are stored in self.ax as a [2, 2] arrray of axes. Note that
+        self.ax[:, 0] are the head axes and self.ax[:, 1] are the flow axes.
+        """
+        #self.ax = plot_2layer_heads_and_flows(tdata=self.tdata, props=self.props)
+        if selection is None:
+            selection = range(6)
+        elif isinstance(selection, int):
+            selection = selection,
+        elif not isinstance(selection, (tuple, list, np.ndarray)):
+            raise ValueEror('Selection must be None, or int or sequence!')
+
+        titles = [f'({self.name}) ' + title for title in titles]
+
+        ax = self.HDS.plot(titles, xlabel, ylabels, selection=selection,
+                      size_inches=size_inches, **kwargs)
+
+        #plotGXG(ax=self.ax[0], tdata=self.tdata, startyr=startyr, nyr=8)
+        return ax
 
 
     def plot(self, titles=['heads', 'flows layer 0', 'flows layer 1'],
@@ -1311,20 +1543,6 @@ class Solution:
         plotGXG(ax=self.ax[0], tdata=self.tdata['h0'], startyr=startyr, nyr=nyr)
 
 
-    def plot_hydrological_year_boundaries(self, startyr=None, nyr=8):
-        """Plot the boundaries of the hydrological years on self.ax.
-
-        Parameters
-        ----------
-        startyr: int
-            The first hydraulical year (April 1 - March 31).
-        nyr: int
-            The number of years to include.
-        """
-        for ax in self.ax.ravel():
-            plot_hydrological_year_boundaries(ax=ax, startyr=startyr, nyr=nyr)
-
-
     def getGXG(self, startyr=None, nyr=8):
         """Add boolean coluns GLG, GHG and GVG columns to self.tdata.
 
@@ -1354,15 +1572,15 @@ class L1f(Solution):
     entry and exit ditch resistance. Regional head is given.
     """
 
-    def __init__(self, props=None):
-        super().__init__(props=props)
+    def __init__(self, parcel_data=None):
+        super().__init__(parcel_data=parcel_data)
         self.name = 'L1f'
 
 class L1q(Solution):
     """Return analytical solution wiith given seepage from regional aquifer."""
 
-    def __init__(self, props=None):
-        super().__init__(props=props)
+    def __init__(self, parcel_data=None):
+        super().__init__(parcel_data=parcel_data)
         self.name = 'L1q'
 
 class L1(Solution):
@@ -1375,8 +1593,8 @@ class L1(Solution):
 class L2(Solution):
     """Return analytic two-layer solution."""
 
-    def __init__(self, props=None):
-        super().__init__(props=props)
+    def __init__(self, parcel_data=None):
+        super().__init__(parcel_data=parcel_data)
         self.name = 'L2'
 
     def sim(self, tdata=None):
@@ -1386,28 +1604,28 @@ class L2(Solution):
 class Lnum(Solution):
     """Return numeric solution using MODFLOW."""
 
-    def __init__(self, props=None):
-        super().__init__(props=props)
+    def __init__(self, parcel_data=None):
+        super().__init__(parcel_data=parcel_data)
         self.name = 'modflow'
 
     def sim(self, tdata=None):
         """Simulate 2-layer system using multilayer analytical solution."""
         self.tdata = tdata
-        gn.modflow(props=props, dx=1.0, tdata=tdata)
+        gn.modflow(parel_dadta=self.parcel_data, dx=1.0, tdata=tdata)
 
 
 def gen_test_time_data(): # Dummy for later use
     """Return generated and or altered tdata."""
-    q = 0.005 # md/d
+    q_up = 0.005 # md/d
     ayear = 365 # days
     hyear = 182 # days
-    dh1 = props['c'][0] * q # phi change as equivalent to q
+    dh1 = props['c'][0] * q_up # phi change as equivalent to q_up
 
     tdata = gen_testdata(tdata=meteo_data,
                           RH  =(2 * ayear, 0.0, 0.002 * 0., 0.002 * 0.),
                           EV24=(2 * ayear, 0.0, 0.0, 0.0),
                           #hLR =(1 * hyear, 0.0, 0.0,  -0.0, 0., 0., ),
-                          q   =(2 * ayear, 0.0, q * 0., 0. -q * 0.),
+                          q_up   =(2 * ayear, 0.0, q_up * 0., 0. -q_up * 0.),
                           h1  =(2 * ayear, 0.0, -dh1 * 0., -dh1 * 0., 0., dh1 * 0.),
                           hdr =(5 * hyear, props['hdr'] * 0., 0.)
                           )
@@ -1419,6 +1637,7 @@ if __name__ == '__main__':
     # home = '/Users/Theo/GRWMODELS/python/GGOR/'
 
     test=False
+    size_inches = (14, 10)
 
     # Parameters to generate the model. Well use this as **kwargs
     GGOR_home = os.path.expanduser('~/GRWMODELS/python/GGOR') # home directory
@@ -1448,32 +1667,25 @@ if __name__ == '__main__':
         parcel_data = gt.GGOR_data(defaults=gt.defaults, bofek=bofek, BMINMAX=(5, 250),
                                    GGOR_home=GGOR_home, case=case).data
 
-
-    titles = ['heads', 'flows layer 0', 'flows layer 1']
-    ylabels = ['m', 'm/d', 'm/d']
-    size_inches = (14, 10)
-
-    iparcel = 0
-
-    props = parcel_data.iloc[iparcel]
+    parcel_data = parcel_data.iloc[:10]
 
     if False: # analytic with given head in regional aquifer
-        l1f = L1f(props=props)
+        l1f = L1f(parcel_data=parcel_data)
         l1f.sim(tdata=tdata)
-        l1f.plot(titles=titles, ylabels=ylabels, size_inches=size_inches)
-    elif False: # analytic with given seepage from regional aquifer
-        l1q = L1q(props=parcel_data.iloc[iparcel])
+        l1f.plot_heads(titles=titles, size_inches=size_inches)
+    elif True: # analytic with given seepage from regional aquifer
+        l1q = L1q(parcel_data=parcel_data)
         l1q.sim(tdata=tdata)
-        l1q.plot(titles=titles, ylabels=ylabels, size_inches=size_inches)
+        l1q.plot_heads(titles=titles, size_inches=size_inches)
     elif False: # Analytic two layers, with ditches in both aquifers
-        l2 = L2(props=props)
+        l2 = L2(parcel_data=parcel_data)
         l2.sim(tdata=tdata)
-        l2.plot(titles=titles, ylabels=ylabels, size_inches=size_inches)
-    elif True: # numerical with dichtes in both aquifers
-        mf = Lnum(props=props)
+        l2.plot_heads(titles=titles, size_inches=size_inches)
+    elif False: # numerical with dichtes in both aquifers
+        mf = Lnum(parcel_data=parcel_data)
         mf.sim(tdata=tdata)
-        mf.plot(titles=titles, ylabels=ylabels, size_inches=size_inches)
+        mf.plot(titles=titles, size_inches=size_inches)
     else:
-        print("?? Nothing to do!!")
+        False("?? Nothing to do!!")
 
     print('---- All done ! ----')
