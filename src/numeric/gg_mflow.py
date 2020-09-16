@@ -20,7 +20,7 @@ from KNMI import knmi
 from fdm import mfgrid
 import flopy
 import flopy.utils.binaryfile as bf
-
+from collections import OrderedDict
 
 NOT = np.logical_not
 AND = np.logical_and
@@ -72,6 +72,85 @@ cbc_labels = {
     'DRN': 'DRAINS',             # also used for trenches.
     'RCH': 'RECHARGE',
     }
+
+# For legend when plotting water balance
+#leg is legend for this label in the graph
+#clr is the color of the filled graph
+watbal_label = OrderedDict()
+watbal_label.update(
+                {'RCH': {'leg': 'RCH', 'clr': 'green'},
+                'EVT': {'leg': 'EVT', 'clr': 'gold'},
+                'WEL': {'leg': 'WEL(in wvp2)' , 'clr': 'blue'},
+                'DRN': {'leg': 'DRN(drn/trenches/runoff)', 'clr': 'lavender'},
+                'RIV': {'leg': 'RIV(ditch out)', 'clr': 'magenta'},
+                'GHB': {'leg': 'GHB(ditch in+out)', 'clr': 'indigo'},
+                'FLF': {'leg': 'FLF(leakage)', 'clr': 'gray'},
+                'STO': {'leg': 'STO', 'clr': 'cyan'}})
+
+
+def selection_check(selection):
+    """Return verified selection."""
+    if selection is None:
+        selection = slice(0, None, 1)
+    elif isinstance(selection, int):
+        selection = slice(0, selection, 1)
+    elif isinstance(selection, (tuple, list, np.ndarray, range, slice)):
+        pass
+    else:
+        raise ValueError("selection must be None (for all), an int or a sequence")
+    return selection
+
+
+def gen_testdata(tdata, **kwargs):
+    """Return copy of tdata with altered or added input columns for testing.
+
+    The tuples consist of:
+        (nday, value1, value2, value3 ..)
+        The nday is the duration of each succcessive value.
+        The values will be implied one after the other, each during the
+        nday peirod. After the last value is used, the sequence is repeated.
+        Therefore, the number of values is immaterial.
+        Note that columns are replaced or added to the tdata DataFrame.
+        A new DataFrame is returnd. Theo old one is left untouched.
+
+    Parameters
+    ----------
+    tdata: pd.DataFrame witih datetime index
+        input for modelling
+    kwargs: a dict of tuples
+        each kwarg as a key and a tuple as argument. The tuple consists
+        of a number_of_days followd by values. Like (120, 0.5, 0.7, -03).
+        The first value is the duration during which each of the following
+        values will be used in turn, repeated after the last value has been
+        consumed.
+        Due to Python works, the call can be like so
+        gen_testdata(tdata, RH=(200, 0.002, 0.003, 0.02), hLR=(150, 0.7, -0.3),
+                     h1=(300, -0.4, 0.2, -0.1))
+        The arguments will then be available in kwargs like so
+            kwargs={'RH': (200, 0.002, 0.003, 0.02),
+                    'hLR': (150, 0.7, -0.3),
+                    'h1': (300, -0.4, 0.2, 0.02)}
+        This makes this function extremely flexable to generate testdata.
+    Example
+    -------
+    tdatanew = gen_testdata(tdata, RH=(200, 0.02, 0.01, 0.03, 0.01)),
+                       EV24 = (365, 0., -0.001)
+                       q_up=(150, -0.001, 0.001, 0, -0.003)
+                       )
+    tdatanew is then a pd.DataFrame with columns 'RH', 'EV24', 'q_up' next
+        to other columns that were already in tdata.
+    """
+    tdata = tdata.copy() # leave tdata intact
+    for key in kwargs:
+        # index array telling which of the tuple values to pick
+        # Daynumber since start of tdata.index
+        daynum = (tdata.index - tdata.index[0]) / np.timedelta64(1, 'D')
+        period = int(kwargs[key][0]) # days
+        values = np.array(kwargs[key][1:])
+        I = np.asarray((daynum // period) % len(values), dtype=int)
+        # Add or replace column in tdata copy
+        tdata[key] = np.array(values[I])
+    return tdata
 
 
 class Dir_struct:
@@ -330,37 +409,37 @@ def set_spatial_arrays(parcel_data=None, gr=None):
     return sparr
 
 
-def set_stress_period_data(time_data=None):
+def set_stress_period_data(tdata=None):
     """Create stress_period arrays for MODLOW.
 
     Parameters
     ----------
-    time_data: pd.DataFrame
+    tdata: pd.DataFrame
         time data with columns 'RH'', 'EVT24' and 'summer'
         and whose index are timestamps
     """
     spt = dict() # stress period time ddata
 
-    dt = np.diff(time_data.index - time_data.index[0]) / np.timedelta64(1, 'D')
+    dt = np.diff(tdata.index - tdata.index[0]) / np.timedelta64(1, 'D')
 
-    spt['NPER']   = len(time_data)
+    spt['NPER']   = len(tdata)
     spt['PERLEN'] = np.hstack((dt[0], dt)) # days for MODFLOW (assume dt day zero is t[1] - t[0])
     spt['NSTP']   = np.ones(spt['NPER'], dtype=int)
     spt['STEADY'] = np.zeros(spt['NPER'], dtype=bool) # all False
 
     # We need only to specify one value for each stress period for the model as a whole?
-    spt['RECH'] = {isp: time_data['RH'  ].iloc[isp] for isp in range(spt['NPER'])}
-    spt['EVTR'] = {isp: time_data['EV24'].iloc[isp] for isp in range(spt['NPER'])}
+    spt['RECH'] = {isp: tdata['RH'  ].iloc[isp] for isp in range(spt['NPER'])}
+    spt['EVTR'] = {isp: tdata['EV24'].iloc[isp] for isp in range(spt['NPER'])}
 
     return spt
 
 
-def set_boundary_data(parcel_data=None, time_data=None, gr=None, IBOUND=None):
+def set_boundary_data(parcel_data=None, tdata=None, gr=None, IBOUND=None):
     """Create time-dependent boundary arrays for MODFLOW.
 
     Parameters
     ----------
-    time_data: pd.DataFrame
+    tdata: pd.DataFrame
         time data with columns 'RH', 'EVTR' and 'summer'
         and whose index are timestamps
     """
@@ -368,12 +447,12 @@ def set_boundary_data(parcel_data=None, time_data=None, gr=None, IBOUND=None):
     for what in ['GHB', 'RIV', 'DRN', 'WEL']:
         spb[what]  = set_boundary(what,
                                   parcel_data=parcel_data,
-                                  time_data=time_data,
+                                  tdata=tdata,
                                   gr=gr,
                                   IBOUND=IBOUND)
 
     spb['OC'] = {(isp, 0): ['save head', 'save budget', 'print budget']
-                                             for isp in range(len(time_data))}
+                                             for isp in range(len(tdata))}
 
     return spb
 
@@ -416,7 +495,7 @@ def get_drain_elev_with_trenches(parcel_data=None, gr=None):
     return elev
 
 
-def set_boundary(what=None, parcel_data=None, time_data=None, gr=None, IBOUND=None):
+def set_boundary(what=None, parcel_data=None, tdata=None, gr=None, IBOUND=None):
     """Return dictionary for boundary of given type.
 
     Parameters
@@ -428,7 +507,7 @@ def set_boundary(what=None, parcel_data=None, time_data=None, gr=None, IBOUND=No
          'RIV': RIV package used to simulate ditch outflow (together with GHB).
     parcel_dadta: pd.DataFrame
         parcel properties / parcel spatial data
-    time_data : pd.DataFrame with time data in columns 'RH', 'EV24', 'hLR', 'summer'
+    tdata : pd.DataFrame with time data in columns 'RH', 'EV24', 'hLR', 'summer'
         time data
     gr: gridObject
         the modflow grid
@@ -451,8 +530,8 @@ def set_boundary(what=None, parcel_data=None, time_data=None, gr=None, IBOUND=No
         # You can trigger use of monthly seepage values by having fields
         # q_up01, q_up02 .. q_up12 in parcel_data
         monthly_seepage_values = 'q_up01' in parcel_data.columns
-        prev_month= time_data.index[0].month - 1
-        for isp, t in enumerate(time_data.index):
+        prev_month= tdata.index[0].month - 1
+        for isp, t in enumerate(tdata.index):
             if t.month != prev_month:
                 # Use monthly values if available in database.
                 fld = f'q_up{t.month:02d}' if monthly_seepage_values else 'q_up'
@@ -505,8 +584,8 @@ def set_boundary(what=None, parcel_data=None, time_data=None, gr=None, IBOUND=No
         spd['i'] = lrc[:, 1]
         spd['j'] = lrc[:, 2]
         spd['cond'] =  cond[cond > 0]
-        sum_prev = not time_data['summer'].iloc[0]
-        for isp, summer in enumerate(time_data['summer']):
+        sum_prev = not tdata['summer'].iloc[0]
+        for isp, summer in enumerate(tdata['summer']):
             if summer != sum_prev:
                 fld = 'h_winter' if summer else 'h_winter'
                 spd['bhead'] = parcel_data[[fld, fld]].values.T[cond > 0]
@@ -537,8 +616,8 @@ def set_boundary(what=None, parcel_data=None, time_data=None, gr=None, IBOUND=No
         spd['i'] = lrc[:, 1]
         spd['j'] = lrc[:, 2]
         spd['cond'] = cond[L].ravel()
-        sum_prev = not time_data['summer'].iloc[0]
-        for isp, summer in enumerate(time_data['summer']):
+        sum_prev = not tdata['summer'].iloc[0]
+        for isp, summer in enumerate(tdata['summer']):
             if summer != sum_prev:
                 fld = 'h_winter' if summer else 'h_winter'
                 spd['stage'] = parcel_data[[fld, fld]].values.T[L]
@@ -853,10 +932,10 @@ class Heads_obj:
 
         self.avgHds = get_parcel_average_hds(self.HDS,
                                              IBOUND=par['IBOUND'], gr=self.gr)
-        self.GXG    = GXG_object(time_data=meteo_data, avgHds=self.avgHds)
+        self.GXG    = GXG_object(tdata=meteo_data, avgHds=self.avgHds)
 
 
-    def plot(self, ax=None, time_data=None, parcel_data=None,
+    def plot(self, ax=None, tdata=None, parcel_data=None,
                    selection=[0, 1, 2, 3, 4],
                    titles=None, xlabel='time', ylabels=['m', 'm'],
                    size_inches=(14, 8), loc='best',  **kwargs):
@@ -866,7 +945,7 @@ class Heads_obj:
         ----------
         ax: plt.Axies
             Axes to plot on.
-        time_data: pd.DataFrame with columns 'RH', 'EVT24 and 'summer'
+        tdata: pd.DataFrame with columns 'RH', 'EVT24 and 'summer'
             time datacorresponding to the avgHds data
         parcel_data: pd.DataFrame
             parcel properties data (used to generate labels)
@@ -890,12 +969,12 @@ class Heads_obj:
         -------
         The one or two plt.Axes`ax
         """
-        if np.isscalar(selection): selection = [selection]
+        selection = selection_check(selection)
 
         if ax is None:
             ax = newfig2(titles, xlabel, ylabels, size_inches=size_inches, **kwargs)
             for a in ax:
-                plot_hydrological_year_boundaries(a, time_data.index)
+                plot_hydrological_year_boundaries(a, tdata.index)
         else:
             for a, title, ylabel in ax, titles, ylabels:
                 a.grid(True)
@@ -910,17 +989,17 @@ class Heads_obj:
         for ilay, a in zip(range(nLay), ax):
             for iclr, isel in enumerate(selection):
                 clr = clrs[iclr % len(clrs)]
-                a.plot(time_data.index, self.avgHds[:, ilay, isel], clr, ls='solid',
+                a.plot(tdata.index, self.avgHds[:, ilay, isel], clr, ls='solid',
                              lw=lw, label="parcel {}".format(isel))
                 if ilay == 0:
                     hDr = (parcel_data['AHN'] - parcel_data['d_drain']
-                                           ).loc[isel] * np.ones(len(time_data))
-                    hLR = parcel_data['h_winter' ].loc[isel] * np.ones(len(time_data))
-                    hLR[time_data['summer']] = parcel_data['h_winter'].loc[isel]
+                                           ).loc[isel] * np.ones(len(tdata))
+                    hLR = parcel_data['h_winter' ].loc[isel] * np.ones(len(tdata))
+                    hLR[tdata['summer']] = parcel_data['h_winter'].loc[isel]
 
-                    a.plot(time_data.index, hLR, clr, ls='dashed', lw=lw,
+                    a.plot(tdata.index, hLR, clr, ls='dashed', lw=lw,
                            label='parcel {}, hLR'.format(isel))
-                    a.plot(time_data.index, hDr, clr, ls='dashdot', lw=lw,
+                    a.plot(tdata.index, hDr, clr, ls='dashdot', lw=lw,
                            label='parcel {}, zdr'.format(isel))
             a.legend(loc=loc, fontsize='xx-small')
 
@@ -954,7 +1033,7 @@ class GXG_object:
 
     This object hold the GXG (GLG, GVG, GHG)  i.e. the lowest, hightes and spring
     groundwater head information and their long-term averaged values based on
-    the number of hydrologi al years implied in the given time_data.
+    the number of hydrologi al years implied in the given tdata.
     (A hydrological year runs form March14 through March 13 the next year, but
      the GXG are based on values of the 14th and 28th of each month only.)
 
@@ -964,21 +1043,21 @@ class GXG_object:
     @TO 2020-08-31
     """
 
-    def __init__(self, time_data=None, avgHds=None):
+    def __init__(self, tdata=None, avgHds=None):
         """Initialize GXG object.
 
         Parameters
         ----------
-        time_data: pd.DataFrame
-            time_data, we only need its index
+        tdata: pd.DataFrame
+            tdata, we only need its index
         avgHds: np.nd_array shape = (nt, nz, nParcel)
             The xsection-averaged heads for all parcels and all times.
             Heads aveaged along the x-axis taking into account cel width
             and ignoring inactive cells.
         """
         # The 'hand' data are the values at the 14th and 28th of each month.
-        ahds = avgHds[time_data['hand'], 0, :]   # (nparcel, nthand)
-        tdat = time_data.loc[time_data['hand']]  # just use the hand data
+        ahds = avgHds[tdata['hand'], 0, :]   # (nparcel, nthand)
+        tdat = tdata.loc[tdata['hand']]  # just use the hand data
 
         # GLG and GHG
         nparcel = ahds.shape[-1] # ny  avgHds (nth, ny)
@@ -1051,7 +1130,7 @@ class GXG_object:
         nmax: int
             maximum number of graphs to plot
         """
-        if np.isscalar(selection): selection = [selection]
+        selection  = selection_check(selection)
 
         clrs = 'brgkmcy'
 
@@ -1121,7 +1200,7 @@ def show_boundary_locations(lbls=None, CBC=None, iper=0, size_inches=(10,8.5)):
 class Watbal_obj:
     """Water balance object."""
 
-    def __init__(self, dirs=None, IBOUND=None, parcel_data=None, time_data=None, gr=None):
+    def __init__(self, dirs=None, IBOUND=None, parcel_data=None, tdata=None, gr=None):
         """Return Watbal object carrying the water budget for all cross sections in m/d.
 
         Parameters
@@ -1132,8 +1211,8 @@ class Watbal_obj:
             Modeflow's IBOUND array
         parcel_data: pd.DatFrame
             parcel property data and spacial data (table)
-        time_data: pd.DataFrame
-            time / meteo data. Only the time_data.index is required
+        tdata: pd.DataFrame
+            time / meteo data. Only the tdata.index is required
         gr: fdm_tools.mfgrid.Grid
 
         Generates
@@ -1198,7 +1277,7 @@ class Watbal_obj:
         print('Done. See self.CBC and self.W')
 
 
-    def plot(self, parcel_data=None, time_data=None,
+    def plot(self, parcel_data=None, tdata=None,
                     selection=None, sharey=False, ax=None):
         """Plot the running water balance of the GGOR entire area in mm/d.
 
@@ -1206,7 +1285,7 @@ class Watbal_obj:
         ----------
         parcel_data: pd.DataFrame
             parcel spatial and property data
-        time_data: pd.DataFrame with time index
+        tdata: pd.DataFrame with time index
             time_index must correspond with MODFLOW's output
             if not specified, then CBB.times is used
         selection: list or sequence
@@ -1219,31 +1298,13 @@ class Watbal_obj:
         """
         m2mm = 1000. # from m to mm conversion
 
-        #leg is legend for this label in the graph
-        #clr is the color of the filled graph
-        LBL = {'RCH': {'leg': 'RCH', 'clr': 'green'},
-               'EVT': {'leg': 'EVT', 'clr': 'gold'},
-               'WEL': {'leg': 'WEL(in wvp2)' , 'clr': 'blue'},
-               #'CHD': {'leg': 'CHD', 'clr': 'red'},
-               'DRN': {'leg': 'DRN(drn/trenches/runoff)', 'clr': 'lavender'},
-               'RIV': {'leg': 'RIV(ditch out)', 'clr': 'magenta'},
-               'GHB': {'leg': 'GHB(ditch in+out)', 'clr': 'indigo'},
-               'FLF': {'leg': 'FLF(leakage)', 'clr': 'gray'},
-               'STO': {'leg': 'STO', 'clr': 'cyan'}}
+        selection = selection_check(selection)
 
-        if selection is None:
-            selection = slice(0, len(parcel_data), 1)
-        elif np.isscalar(selection):
-            selection = slice(int(selection), int(selection) + 1, 1)
-        elif not isinstance(selection, (list, tuple, np.ndarray, slice)):
-            raise ValueError("Illegal selection type '{}'.".format(
-                str(type(selection))) + " Use None, an int or a sequence.")
-
-        missing = set(LBL.keys()).difference(set(cbc_labels.keys()))
+        missing = set(watbal_label.keys()).difference(set(cbc_labels.keys()))
         if len(missing):
             raise ValueError("Missing labels = [{}]".format(', '.join(missing)))
 
-        tindex = self.CBC.times if time_data is None else time_data.index
+        tindex = self.CBC.times if tdata is None else tdata.index
 
         # Sum over all Parcels. The watbal values are in mm/d. To sum over all
         # parcels multiply by their share of the regional area [-]
@@ -1260,8 +1321,8 @@ class Watbal_obj:
             V[lbl][0] = np.sum(self.W[lbl][0][:, selection, :] * Arel * m2mm,
                             axis=-2) # also to mm/d
 
-        clrs = [LBL[L]['clr'] for L in LBL]
-        lbls = [LBL[L]['leg'] for L in LBL]
+        clrs = [watbal_label[L]['clr'] for L in watbal_label]
+        lbls = [watbal_label[L]['leg'] for L in watbal_label]
 
         if isinstance(selection, slice):
             ttl = ' Taken over parcels[{}:{}:{}]'.format(
@@ -1279,9 +1340,9 @@ class Watbal_obj:
         if not isinstance(ax, (list, tuple, np.ndarray)):
             raise ValueError("Given ax must be an sequence of 2 axes.")
 
-        V0 = np.zeros((len(LBL), self.CBC.nper))
-        V1 = np.zeros((len(LBL), self.CBC.nper))
-        for i, lbl in enumerate(LBL):
+        V0 = np.zeros((len(watbal_label), self.CBC.nper))
+        V1 = np.zeros((len(watbal_label), self.CBC.nper))
+        for i, lbl in enumerate(watbal_label):
             V0[i] = V[lbl][0, 0, :]
             V1[i] = V[lbl][0, 1, :]
 
@@ -1296,7 +1357,7 @@ class Watbal_obj:
         return ax
 
 
-def run_modflow(dirs=None, parcel_data=None, time_data=None, laycbd=(1, 0), dx=1.):
+def run_modflow(dirs=None, parcel_data=None, tdata=None, laycbd=(1, 0), dx=1.):
         """Simulate GGOR using MODFLOW.
 
         Parameters
@@ -1305,7 +1366,7 @@ def run_modflow(dirs=None, parcel_data=None, time_data=None, laycbd=(1, 0), dx=1
             directory structure object, containing home and case information
         parcel_data: pd.DataFrame
             parcel data (spacial)
-        time_data: pd.DataFrame
+        tdata: pd.DataFrame
             meteo data used to generate stress periods
         """
         gr   = grid_from_parcel_data(
@@ -1313,10 +1374,10 @@ def run_modflow(dirs=None, parcel_data=None, time_data=None, laycbd=(1, 0), dx=1
 
         par = set_spatial_arrays(parcel_data=parcel_data, gr=gr)
 
-        spd  = set_stress_period_data(time_data=time_data)
+        spd  = set_stress_period_data(tdata=tdata)
 
         bdd  = set_boundary_data(parcel_data=parcel_data,
-                                     time_data=time_data,
+                                     tdata=tdata,
                                      gr=gr,
                                      IBOUND=par['IBOUND'])
 
@@ -1380,47 +1441,6 @@ def run_modflow(dirs=None, parcel_data=None, time_data=None, laycbd=(1, 0), dx=1
         return par, spd, bdd, gr
 
 
-def proces_and_plot_heads(HDS=None, time_data=None, parcel_data=None,
-                   selection=[0, 3, 4], gr=None, IBOUND=None):
-    """Process MODFLOW output and plot heads and water balance.
-
-    X-section averagted heads are plotted together with ditch heads and drain
-    level and GXG points.
-
-    Total running water balance will be plotted (all values in m/d).
-
-    Parameters
-    ----------
-    HDS: open file
-        flopy opened heads file
-    time_data: pd.DataFrame
-        time input, having columns 'RH', 'EVT24', 'summer' and 'hyear'
-    parcel_data: pd.DataFrame
-        parcel data used with generating the MODFLOW input
-    selection: list or tuple
-        indices of parcels of which heads are to be shown. Detauls None = 'all'
-    gr: gridObject
-        object holding the MODFLOW grid information.
-    IBOUND: nd_array
-        the MODFLOW boundary array telling which cells are active.
-    """
-    print("Computing average head for each parcel ...")
-    avgHds = get_parcel_average_hds(HDS, IBOUND, gr)
-
-    print("Plotting heads and GxG for selected parcels Nrs <" + (" {}"*len(selection)).format(*selection) + ">...")
-    titles=['X-section average heads', 'X-section-averaged heads']
-    ax = plot_heads(avgHds=avgHds, time_data=time_data, parcel_data=parcel_data,
-               selection=selection, titles=titles, xlabel='time', ylabels=['m', 'm'],
-               size_inches=(14, 8))
-
-    plot_hydrological_year_boundaries(ax, tindex=time_data.index)
-
-    GXG = GXG_object(time_data, avgHds)
-    GXG.plot(ax[0], selection=selection)
-
-    return GXG
-
-
 def data_to_excel(dirs=None, data=None, fname=None):
     """Sace the current parcel_data DataFrame to an excel file.
 
@@ -1457,7 +1477,8 @@ def get_test_parcels(path, sheet_name, test_id_col='Test'):
     test_id_col = other_cols.pop(other_cols.index(test_id_col))
 
     for col in other_cols:
-        parcel_data[col].loc[parcel_data[col].isna()] = parcel_data[col].iloc[0]
+        missing = parcel_data[col].isna().values
+        parcel_data.loc[missing, col] = parcel_data[col].iloc[0]
 
     parcel_data[test_id_col] = parcel_data[test_id_col].fillna(method='ffill')
 
@@ -1498,17 +1519,23 @@ if __name__ == "__main__":
     dirs = Dir_struct(GGOR_home, case=case)
 
     #Get the meteo data from an existing file or directly from KNMI
-    meteo_data = knmi.get_weather(stn=240, start='20100101', end='20191231')
+    meteo_data = knmi.get_weather(stn=240, start='20100101', end='20191231',
+                                  folder=dirs.meteo)
 
     # Add columns "summer' and "hyear" to it"
-    meteo_data = handle_meteo_data(meteo_data, summer_start=4, summer_end=10)
+    tdata = handle_meteo_data(meteo_data, summer_start=4, summer_end=10)
 
     if test:
+        tdata = gen_testdata(tdata=tdata,
+                              RH  =(270, 0.0, 0.002, 0.004),
+                              EV24=(180, 0.0, 0.001, 0.002),
+                              )
+
         parcel_data = get_test_parcels(os.path.join(
-                                dirs.case, 'pdata_test.xlsx'), 'parcel_tests')
+                                dirs.case, 'pdata_test.xlsx'), 'parcel_tests1')
 
         # Special test
-        parcel_data = parcel_data.iloc[0:1]
+        parcel_data = parcel_data.iloc[0:4]
     else:
         # Bofek data, coverting from code to soil properties (kh, kv, sy)
         # The BOFEK column represents a dutch standardized soil type. It is used.
@@ -1522,7 +1549,7 @@ if __name__ == "__main__":
                                    GGOR_home=GGOR_home, case=case).data
 
     # MODFLOW input arrays are int the returned dicts
-    par, spd, bdd, gr =  run_modflow(dirs=dirs, parcel_data=parcel_data, time_data=meteo_data)
+    par, spd, bdd, gr =  run_modflow(dirs=dirs, parcel_data=parcel_data, tdata=tdata)
 
     #%% Get the modflow-computed heads and cell by cell flows
 
@@ -1531,7 +1558,7 @@ if __name__ == "__main__":
     watbal = Watbal_obj(dirs,
                            IBOUND=par['IBOUND'],
                            parcel_data=parcel_data,
-                           time_data=meteo_data,
+                           tdata=tdata,
                            gr=gr)
 
     #%% Open HDS file and plot heads (with GXG)
@@ -1543,26 +1570,26 @@ if __name__ == "__main__":
 
             titles=['Parcel averaged heads, testvar {} in [{}]'.format(tst, test_vals_str),
                     'Parcel averaged heads, testvar {} in [{}]'.format(tst, test_vals_str)]
-            ax = heads.plot(time_data=meteo_data,
+            ax = heads.plot(tdata=tdata,
                            parcel_data=parcel_data,
                            selection=selection,
                            titles=titles,
                            size_inches=(14, 8))
             if False:
                 ax = watbal.plot(parcel_data=parcel_data,
-                                 time_data=meteo_data,
+                                 tdata=tdata,
                                  selection=selection[0],
                                  sharey=True)
     else:
         selection = [0]
-        ax = heads.plot(time_data=meteo_data,
+        ax = heads.plot(tdata=tdata,
                parcel_data=parcel_data,
                selection=selection,
                titles=titles,
                size_inches=(14, 8))
 
         ax = watbal.plot(parcel_data=parcel_data,
-                         time_data=meteo_data,
+                         tdata=tdata,
                          selection=None,   # over all parcels
                          sharey=True)
 
@@ -1570,6 +1597,6 @@ if __name__ == "__main__":
     print('---- All done ! ----')
 #%%
     ax = watbal.plot(parcel_data=parcel_data,
-                         time_data=meteo_data,
+                         tdata=tdata,
                          selection=None,   # over all parcels
                          sharey=True)

@@ -2418,6 +2418,54 @@ kD\frac{d^{2}h}{dx^{2}} & =-N+\frac{h-\phi}{c}+\frac{h-z_{dr}}{c_{dr}}
 \end_layout
 
 \begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\frac{h-\hat{\phi}}{\hat{c}} & =\frac{h-\phi}{c}+\frac{h-z_{dr}}{c_{dr}}\\
+ & =h\left(\frac{c_{dr}+c}{cc_{dr}}\right)-\left(\frac{c_{dr}\phi+cz_{dr}}{c_{dr}c}\frac{c_{dr}+c}{c_{dr}+c}\right)\\
+ & =h\left(\frac{c_{dr}+c}{cc_{dr}}\right)-\left(\frac{c_{dr}+c}{c_{dr}c}\frac{c_{dr}\phi+cz_{dr}}{c_{dr}+c}\right)\\
+ & =\frac{h}{\hat{c}}-\frac{\hat{\phi}}{\hat{c}}\\
+ & =\frac{h-\hat{\phi}}{\hat{c}}
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\hat{c}=\frac{c_{dr}c}{c_{dr}+c}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\hat{\phi}=\frac{c_{dr}\phi+cz_{dr}}{c_{dr}+c}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+kD\frac{d^{2}h}{dx^{2}}=-N+\frac{h-\hat{\phi}}{\hat{c}}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
 Deze kan ook worden geschreven als
 \end_layout
 
@@ -2446,7 +2494,7 @@ waarbij
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\widehat{\phi}=\frac{\phi c_{dr}+z_{dr}c}{c+c_{dr}}=\frac{\phi+\frac{c}{c_{dr}}z_{dr}}{1+\frac{c}{c_{dr}}}
+\widehat{\phi}=\frac{\phi c_{dr}+z_{dr}c}{c_{dr}+c}=\frac{\phi+\frac{c}{c_{dr}}z_{dr}}{1+\frac{c}{c_{dr}}}=\frac{\phi\frac{c_{dr}}{c}+z_{dr}}{\frac{c_{dr}}{c}+1}
 \]
 
 \end_inset
@@ -2476,7 +2524,7 @@ Wanneer dus
 \begin_inset Formula $\phi\rightarrow\hat{\phi}$
 \end_inset
 
- te schrijven in de eerdere oplossing.
+ te vervangen in de eerdere oplossing.
 \end_layout
 
 \begin_layout Standard
@@ -2638,10 +2686,6 @@ noprefix "false"
 
 \end_inset
 
-
-\end_layout
-
-\begin_layout Standard
 en voor een tijdstap met lengte 
 \begin_inset Formula $\Delta t=t_{1}-t_{0}\rightarrow\overline{h}=\overline{h}_{1}$
 \end_inset
@@ -2652,7 +2696,7 @@ en voor een tijdstap met lengte
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\overline{h}=\widehat{\phi}+\left(\overline{h}_{0}-\widehat{\phi}\right)e^{-\frac{t-t_{0}}{\widehat{T}}}+\left[N\widehat{c}\left(1-\widehat{\Lambda}\right)+\left(h_{LR}-\widehat{\phi}\right)\widehat{\Lambda}\right]\left(1-e^{-\frac{t-t_{0}}{\widehat{T}}}\right)
+\overline{h}_{1}=\widehat{\phi}+\left(\overline{h}_{0}-\widehat{\phi}\right)e^{-\frac{\Delta t}{\widehat{T}}}+\left[N\widehat{c}\left(1-\widehat{\Lambda}\right)+\left(h_{LR}-\widehat{\phi}\right)\widehat{\Lambda}\right]\left(1-e^{-\frac{\Delta t}{\widehat{T}}}\right)
 \]
 
 \end_inset
@@ -2706,7 +2750,7 @@ Het is dus mogelijk om bij elke gegeven
 \begin_inset Formula $\hat{\phi}$
 \end_inset
 
-uit te rekenen voor het einde van de volgende tijdstap.
+ uit te rekenen voor het einde van de volgende tijdstap.
  Alleen kennen we 
 \begin_inset Formula $\overline{h}$
 \end_inset
@@ -2796,14 +2840,14 @@ Dit vergt twee berekeningen per tijdstap.
 \end_layout
 
 \begin_layout Subsubsection
-Drainageinstabiliteit
+Drainage-instabiliteit
 \end_layout
 
 \begin_layout Standard
 De drainage veroorzaakt numerieke instabiliteit wanneer de grondwaterstand
  gedurende een tijdstap door het drainageniveau gaat.
  Een eenvoudige aanpak waarbij de drainageweerstand verloopt van heel klein
- boven tot heel groot onder het drainagenivea volgens
+ boven tot heel groot onder het drainageniveau volgens
 \end_layout
 
 \begin_layout Standard
@@ -2828,8 +2872,8 @@ Een
 \end_inset
 
  werkt wel, maar ook dit is geen garantie dat er nooit instabiliteit optreedt.
- Immers de drainage is niet meer lineair, of die nu springt, of dat die
- nu verloopt met 
+ Immers de drainage is niet meer lineair, ongeacht of deze nu springt, of
+ dat die nu verloopt met 
 \begin_inset Formula $h$
 \end_inset
 
@@ -2847,9 +2891,46 @@ Kunnen we dan niet beter het punt opzoeken waar
 \begin_layout Standard
 \begin_inset Formula 
 \begin{align*}
-\overline{h}-\phi & =\left(\overline{h}_{0}-\phi\right)e^{-\frac{t-t_{0}}{T}}+\left\{ Nc-\left[Nc-\left(h_{LR}-\phi\right)\right]\Lambda\right\} \left(1-e^{-\frac{t-t_{0}}{T}}\right)\\
-y & =Ae^{-\tau}+B\left(1-e^{-\tau}\right)
+\overline{h}-\hat{\phi} & =\left(\overline{h}_{0}-\hat{\phi}\right)e^{-\frac{t-t_{0}}{\hat{T}}}+\left\{ N\hat{c}-\left[N\hat{c}-\left(h_{LR}-\hat{\phi}\right)\right]\Lambda\right\} \left(1-e^{-\frac{t-t_{0}}{\hat{T}}}\right)
 \end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Dus met 
+\begin_inset Formula $\overline{h}=z_{dr}$
+\end_inset
+
+ voor 
+\begin_inset Formula $\tau=t_{hit}$
+\end_inset
+
+, kunnen we deze vergelijking eenvoudiger als volgt opschrijven
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+y=Ae^{-\frac{\tau-t_{0}}{\hat{T}}}+B\left(1-e^{-\frac{\tau-t_{0}}{\hat{T}}}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+met
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+y=z_{dr}-\hat{\phi}
+\]
 
 \end_inset
 
@@ -2866,7 +2947,10 @@ Want
 \end_inset
 
  zijn constant gedurende elke tijdstap.
- Wat is 
+\end_layout
+
+\begin_layout Standard
+Wat is 
 \begin_inset Formula $\tau$
 \end_inset
 
@@ -2874,22 +2958,73 @@ Want
 \begin_inset Formula $y$
 \end_inset
 
-? Waarbij 
-\begin_inset Formula $y=z_{dr}-\phi$
-\end_inset
-
- uiteraard.
+?
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \begin{align*}
-y-B & =\left(A-B\right)e^{-\tau}\\
-\ln\frac{y-B}{A-B} & =-\tau\\
-\tau & =\ln\frac{A-B}{y-B}\\
-\frac{t-t_{0}}{T} & =\ln\left(\frac{\overline{h}_{0}-\phi-B}{z_{dr}-\phi-B}\right)\\
-B= & Nc-\left[Nc-\left(h_{LR}-\phi\right)\right]\Lambda
+y-B & =\left(A-B\right)e^{-\frac{\tau-t_{0}}{\hat{T}}}\\
+\ln\frac{y-B}{A-B} & =-\frac{\tau-t_{0}}{\hat{T}}\\
+\frac{\tau-t_{0}}{\hat{T}} & =\ln\frac{A-B}{y-B}
 \end{align*}
+
+\end_inset
+
+of
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\frac{\tau-t_{0}}{\hat{T}}=\ln\left(\frac{\overline{h}_{0}-\hat{\phi}-B}{z_{dr}-\hat{\phi}-B}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Dus de tijd totdat de grondwaterstand het drainniveau aantikt (van boven
+ of van onderen) is
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+d\tau=\hat{T}\:\ln\left(\frac{\overline{h}_{0}-\hat{\phi}-B}{z_{dr}-\hat{\phi}-B}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+waarin
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+d\tau=\tau-t_{0}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+en
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+B=N\hat{c}-\left[N\hat{c}-\left(h_{LR}-\hat{\phi}\right)\right]\hat{\Lambda}
+\]
 
 \end_inset
 
@@ -2911,7 +3046,7 @@ De voorwaarde is dat het argument van de
 \begin_layout Standard
 \begin_inset Formula 
 \begin{align*}
-\frac{\overline{h}_{0}-\phi-B}{z_{dr}-\phi-B} & >1
+\frac{\overline{h}_{0}-\hat{\phi}-B}{z_{dr}-\hat{\phi}-B} & >1
 \end{align*}
 
 \end_inset
@@ -2920,56 +3055,26 @@ De voorwaarde is dat het argument van de
 \end_layout
 
 \begin_layout Standard
-Dus indien 
-\begin_inset Formula $z_{dr}-\phi-B>0$
+Dit is equivalent aan 
+\begin_inset Formula $\frac{\overline{h}_{0}}{z_{dr}}>0$
 \end_inset
 
-, dus wanneer 
-\begin_inset Formula $z_{dr}>\phi+B$
+ ofwel het teken van 
+\begin_inset Formula $\overline{\ensuremath{h}_{0}}$
 \end_inset
 
- c.q.
+ moet hetzelfde zijn als dat van 
+\begin_inset Formula $z_{dr}$
+\end_inset
+
+.
  
-\begin_inset Formula $\phi+B<z_{dr}$
-\end_inset
-
-
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \begin{align*}
-\overline{h}_{0}-\phi-B & >z_{dr}-\phi-B\\
-\overline{h}_{0} & >z_{dr}
-\end{align*}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-En indien 
-\begin_inset Formula $z_{dr}-\phi-B<0$
-\end_inset
-
-, dus wanneer 
-\begin_inset Formula $z_{dr}<\phi+B$
-\end_inset
-
-, c.q.
- 
-\begin_inset Formula $\phi+B>z_{dr}$
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{align*}
-\overline{h}_{0}-\phi-B & <z_{dr}-\phi-B\\
-\overline{h}_{0} & <z_{dr}
+\overline{h}-\hat{\phi} & =\left(\overline{h}_{0}-\hat{\phi}\right)e^{-\frac{t-t_{0}}{\hat{T}}}+\left\{ N\hat{c}-\left[N\hat{c}-\left(h_{LR}-\hat{\phi}\right)\right]\hat{\Lambda}\right\} \left(1-e^{-\frac{t-t_{0}}{\hat{T}}}\right)
 \end{align*}
 
 \end_inset
@@ -2986,7 +3091,7 @@ Gaat
 \begin_inset Formula $zdr$
 \end_inset
 
-? Daarvoor is het genoeg om te kijken naar de afgeleid op 
+? Daarvoor is het genoeg om te kijken naar de afgeleide op 
 \begin_inset Formula $t=t_{0}$
 \end_inset
 
@@ -2996,8 +3101,143 @@ Gaat
 \begin_layout Standard
 \begin_inset Formula 
 \begin{align*}
-T\left(\frac{d\overline{h}}{dt}\right)_{t=t_{0}} & =-\left(\overline{h}_{0}-\phi\right)+\left\{ Nc-\left[Nc-\left(h_{LR}-\phi\right)\right]\Lambda\right\} 
+\frac{d\overline{h}}{dt} & =\left[\left(\hat{\phi}-\overline{h}\right)+\left\{ N\hat{c}-\left[N\hat{c}-\left(h_{LR}-\hat{\phi}\right)\right]\hat{\Lambda}\right\} \right]\frac{e^{-\frac{t-t_{0}}{\hat{T}}}}{\hat{T}}
 \end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Aangezien de rechter factor altijd positief is is het ter bepaling van de
+ vraag of de grondwaterstand al dan niet stijgt voldoende om alleen de andere
+ factor te checken:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+rising=\left[\left(\hat{\phi}-\overline{h}\right)+\left\{ N\hat{c}-\left[N\hat{c}-\left(h_{LR}-\hat{\phi}\right)\right]\hat{\Lambda}\right\} \right]>0
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+De hamvraag wat gebeurt er wanneer op het aanraken van de drainwaterstand
+ met de grondwaterstand indien de weerstand verandert tot 
+\begin_inset Formula $\infty$
+\end_inset
+
+ in geval de grondwaterstand onder het drainniveau zakt of tot 
+\begin_inset Formula $c_{dr}$
+\end_inset
+
+ indien de grondwaterstand boven het drainniveau uitstijgt?
+\end_layout
+
+\begin_layout Standard
+Wat is 
+\begin_inset Formula $\left(\frac{d\overline{h}}{dt}\right)_{h=z_{dr}}$
+\end_inset
+
+?
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\left(\frac{d\overline{h}}{dt}\right)_{h=z_{dr}} & =\left[\left(\hat{\phi}-z_{dr}\right)+\left\{ N\hat{c}-\left[N\hat{c}-\left(h_{LR}-\hat{\phi}\right)\right]\hat{\Lambda}\right\} \right]\frac{e^{-\frac{d\tau}{\hat{T}}}}{\hat{T}}
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\left(\hat{\phi}-z_{dr}\right)+\left\{ N\hat{c}-\left[N\hat{c}-\left(h_{LR}-\hat{\phi}\right)\right]\hat{\Lambda}\right\} >0
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Laat dit waar zijn voor een stijgende waterstand, dus 
+\begin_inset Formula $\hat{c}=\infty$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\left(\phi-z_{dr}\right)+\left\{ Nc-\left[Nc-\left(h_{LR}-\phi\right)\right]\Lambda\right\} >0
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+is dan ook
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\left(\hat{\phi}-z_{dr}\right)+\left\{ N\hat{c}-\left[N\hat{c}-\left(h_{LR}-\hat{\phi}\right)\right]\hat{\Lambda}\right\} >0
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\left(\frac{\phi c_{dr}+z_{dr}c}{c_{dr}+c}-z_{dr}\right)+\left\{ N\frac{cc_{dr}}{c+c_{dr}}-\left[N\frac{cc_{dr}}{c+c_{dr}}-\left(h_{LR}-\frac{\phi c_{dr}+z_{dr}c}{c_{dr}+c}\right)\right]\hat{\Lambda}\right\} >0
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Wat is de limiet als 
+\begin_inset Formula $c_{dr}\rightarrow0$
+\end_inset
+
+?
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\left[\left(h_{LR}-z_{dr}\right)\right]\frac{1}{\frac{b}{\widehat{\lambda}}\mbox{ctanh}\frac{b}{\widehat{\lambda}}+\frac{b/\widehat{c}}{D/w}}>0
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\left[\left(h_{LR}-z_{dr}\right)\right]\frac{\hat{c}}{\frac{b}{\widehat{\lambda}}\mbox{ctanh}\frac{b}{\widehat{\lambda}}+\frac{b}{D/w}}>0
+\]
 
 \end_inset
 

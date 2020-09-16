@@ -57,30 +57,7 @@ NOT = np.logical_not
 AND = np.logical_and
 OR  = np.logical_or
 
-
-#%% cbc_labels
-cbc_labels = {
-    'STO': 'STORAGE',
-    'FLF': 'FLOW LOWER FACE ',
-    'WEL': 'WELLS',              # used for seepage. Are in seconde layer.
-    'EVT': 'ET',
-    'GHB': 'HEAD DEP BOUNDS',
-    'RIV': 'RIVER LEAKAGE',
-    'DRN': 'DRAINS',             # also used for trenches.
-    'RCH': 'RECHARGE',
-    }
-
-#%% Labels for water budget plotting
-LBL = { 'RCH': {'leg': 'RCH', 'clr': 'green'},
-    'EVT': {'leg': 'EVT', 'clr': 'gold'},
-    'DRN': {'leg': 'DRN', 'clr': 'lavender'},
-    'GHB': {'leg': 'GHB', 'clr': 'purple'},
-    'RIV': {'leg': 'GHB', 'clr': 'magenta'},
-    'STO': {'leg': 'STO', 'clr': 'cyan'},
-    'FLF': {'leg': 'FLF', 'clr': 'gray'},
-    'WEL': {'leg': 'WEL', 'clr': 'black'},
-    }
-
+ayear = 365 # days
 
 #%% The required properties dictionary
 props_required = {'b': 'Section half width [m]',
@@ -159,66 +136,6 @@ def newfig2(titles=['title1', 'title2'], xlabel='time',
     return ax
 
 
-def gen_testdata(tdata, **kwargs):
-    """Return copy of tdata with altered input columns suitable for testing.
-
-    The tuples consist of a set floats to be used repeatly for interval time:
-        interval, val1, val2, val3, ...
-        Changes occur after each interval
-
-    Parameters
-    ----------
-    tdata: pd.DataFrame witih datetime index
-        input for modelling
-    RH: tuple of floats for net pecipitation variation
-        interval, val1, val2, ...
-    EV24: tuple of floats for net evapotranspiration variation
-        interval, val1, val2, ...
-    hLR: tuple of floats for ditch level variation
-        interval, val1, val2, ...
-    q: tuple of floats for vertical seepage variation
-        interval, val1, val2, ...
-    h1: tuple of floats for head in regional aquifer variation
-        interval, vavl1, val2, val3, ...
-        Note that the top layer is h0
-
-    Example
-    -------
-    gen_testdata(tdata, RH=(200, 0.02, 0.01, 0.03, 0.01)),
-                       EV24 = (365, 0., -0.001)
-                       q_up=(150, -0.001, 0.001, 0, -0.003)
-                       )
-        This fills the tdata colums 'RH', EV24' and 'q_up' with successive
-        values repeatly at each interval of resp. 200, 365 and 150 days.
-    """
-    tdata = tdata.copy() # leave tdata intact
-    for W in kwargs:
-        # index array telling which of the tuple values to pick
-        I = np.asarray((tdata.index - tdata.index[0]) / np.timedelta64(1, 'D')
-                          // kwargs[W][0] % (len(kwargs[W]) - 1) + 1, dtype=int)
-        tdata[W] = np.array(kwargs[W])[I] # immediately pick the right values
-
-    return tdata
-
-
-def gen_test_time_data(): # Dummy for later use
-    """Return generated and or altered tdata."""
-    q_up = 0.005 # md/d
-    ayear = 365 # days
-    hyear = 182 # days
-    dh1 = props['c'][0] * q_up # phi change as equivalent to q_up
-
-    tdata = gen_testdata(tdata=meteo_data,
-                          RH  =(2 * ayear, 0.0, 0.002 * 0., 0.002 * 0.),
-                          EV24=(2 * ayear, 0.0, 0.0, 0.0),
-                          #hLR =(1 * hyear, 0.0, 0.0,  -0.0, 0., 0., ),
-                          q_up   =(2 * ayear, 0.0, q_up * 0., 0. -q_up * 0.),
-                          h1  =(2 * ayear, 0.0, -dh1 * 0., -dh1 * 0., 0., dh1 * 0.),
-                          hdr =(5 * hyear, props['hdr'] * 0., 0.)
-                          )
-    return tdata
-
-
 def check_cols(data=None, cols=None):
     """Check presence of input columns in pd.DataFrame.
 
@@ -267,13 +184,18 @@ def add_var_to_tseries(tdata, var='q_up', props=None):
         properties of the parcel.
     """
     if var in props:
-        tdata[var] = props[var]
+        tdata.loc[:, var] = props[var]
     else:
         tdata[var] = np.nan
         # replace by specified monthly values
         month = np.array([t.month for t in tdata.index], dtype=int)
         for m in range(1, 13):
-            tdata[var].loc[m == mon] = props[f'{var:}{m:02d}']
+            try:
+                var = '{:}{:02d}'.format(var, m)
+                tdata.loc[m == mon, var] = props[var]
+            except:
+                raise ValueError("Missing vairable '{}' and or monthly var '{} in parcel_data"
+                                 .format(var[:-2], var))
     return tdata
 
 def prop2tvalues(tindex=None, var=None, props=None):
@@ -351,8 +273,8 @@ def single_Layer_transient(solution_name, parcel_data=None, tdata=None):
     check_cols(tdata, ['RH', 'EV24', 'summer'])
 
     # Geenrate heads object and a cbc object.
-    HDS = HDS_obj(tdata=tdata, parcel_data=parcel_data)
-    CBC = CBC_obj(tdata=tdata, parcel_data=parcel_data)
+    HDS = HDS_obj(tdata=tdata, parcel_data=parcel_data, solution_name=solution_name)
+    CBC = CBC_obj(tdata=tdata, parcel_data=parcel_data, solution_name=solution_name)
 
     nper, nparcel  = CBC.nper, CBC.nparcel
 
@@ -361,260 +283,214 @@ def single_Layer_transient(solution_name, parcel_data=None, tdata=None):
     wtol = 1e-3 # d, tolerance wi > wo
     htol = 1e-3 # d, head tolerance
 
-    if solution_name == 'L1f': # for given Phi (f)
 
-        print('Simulating {}'.format(solution_name))
+    NITER = 2 if solution_name == 'L1q' else 1
 
-        for ip in range(len(parcel_data)):
+    # We need heads one longer than number of time steps to get a start.
+    h0 = np.zeros(nper + 1) # h0[i] end of prev. time step, start of current one
+    h1 = np.zeros(nper + 1) # h1[i] end of prev. time step, start of current one
 
-            print('Parcel {}'.format(ip), end='')
+    print('Sumulating {}'.format(solution_name))
 
-            props = parcel_data.iloc[ip]
+    for ip in range(len(parcel_data)):
 
-            # Extract tdata for single-layer problem
-            b, c, wo, wi = props['b'], props['c_CB'], props['wo_ditch'], props['wi_ditch']
-            mu, S, k, D  =  props['sy'], props['S2'], props['kh'], props['D1']
-            cdr, hdr     = props['c_drain'], props['AHN'] - props['d_drain']
+        print('Parcel {}'.format(ip), end='')
 
-            w_ghb = wi
-            w_riv = np.inf if wi < wo + wtol else wi * wo / (wi - wo)
+        # Get parcel properties
+        props = parcel_data.iloc[ip]
 
-            hLR = np.zeros((nper)) * props['h_winter']; hLR[tdata['summer']] = props['h_summer']
+        b, c, wo, wi = props['b'], props['c_CB'], props['wo_ditch'], props['wi_ditch']
+        mu, S, k     = props['sy'], props['S2'], props['kh']
+        cdrain, hdr  = props['c_drain'], props['AHN'] - props['d_drain']
+        phi, D       = props['phi'], props['D1']
 
-            # add columne phi to tdata, using data from props
-            tdata['phi'] = add_var_to_tseries(tdata, var='phi', props=props)
+        # Ditch restance to resistance used in MODFLOW's GHB and RIV packages
+        w_ghb = wi
+        w_riv = np.inf if wi < wo + wtol else wi * wo / (wi - wo)
 
-            # Initialize head in top layer and regional aquifer
-            h0 = np.ones(len(tdata) + 1) * hLR[0] # initialize h0, first aquifer
-            h1 = np.ones(len(tdata) + 1) * tdata['phi'].iloc[0] # initialize h1, second aquifer (phi)
+        tdata['hLR'] = np.zeros((nper)) * props['h_winter']
+        tdata.loc[tdata['summer'], 'hLR'] = props['h_summer']
 
-            # Fluxes computed on the go
-            qs0 = np.zeros(len(tdata))
-            qv0 = np.zeros(len(tdata))
-            qdr = np.zeros(len(tdata))
-            qb0 = np.zeros(len(tdata))
+        # add column q_up to tdata, using data from props
+        tdata = add_var_to_tseries(tdata, var='q_up', props=props)
+        tdata = add_var_to_tseries(tdata, var='phi' , props=props)
 
-            htol = 1e-3
-            check_cols(tdata, [])
-            tdata['q_up'] = np.NaN
-            for it, (dt, t1, hlr, RH, EV24, phi) in enumerate(zip(
-                                    Dt,                  # time step
-                                    np.cumsum(Dt),       # t1 (end of time step)
-                                    hLR,  # ditch water level
-                                    tdata[ 'RH'].values, # precipirtation
-                                    tdata['EV24'].values,
-                                    tdata['phi'].values)): # evapotranpiration
-                N = RH - EV24
-                t = t1 - dt   # initialize t0, begining of time step
-                hh = np.array([h0[it], 0])
-                loop_counter = 0
-                # Iterate in case drainage switches on or off during the time step
-                while t < t1:
-                    loop_counter += 1
-                    if loop_counter == 100:
+        # Initialize
+        h0[0] = tdata['hLR'].iloc[0]
+
+        if solution_name == 'L1f':
+            phi = tdata['hLR'].iloc[0]
+        else:
+            phi = h0[0] + c * tdata['q_up'].iloc[0]
+
+        h1[0] = phi
+
+        # Mixed paramters, due to drainage
+        w_    = wo if h0[0] <= tdata['hLR'].iloc[0] else wi
+        cdr    = np.inf if h0[0] < hdr else cdrain
+        ch     = c  / (1 + c / cdr)    # c_hat (see theory)
+        Th     = mu * ch
+        phih   = (phi + (c / cdr) * hdr) / (1 + c / cdr)
+        lamh   = np.sqrt(k * D * ch)
+        Lambh  = 1 / ((b / lamh) / np.tanh(b / lamh) + (w_ / D) * (ch / b))
+
+        # Fluxes computed on the go
+        qs0 = np.zeros(len(tdata))
+        qs1 = np.zeros(len(tdata))
+        qv0 = np.zeros(len(tdata))
+        qdr = np.zeros(len(tdata))
+        qb0 = np.zeros(len(tdata))
+
+        muststop = False
+        # Iterate this parcel over all time steps
+        for it, (dt, t1, hlr, prec, ev24, q_up, phi) in enumerate(zip(
+                                Dt,                   # time step
+                                np.cumsum(Dt),        # t1 (end of time step)
+                                tdata[ 'hLR'].values, # ditch water level
+                                tdata[  'RH'].values, # precipirtation
+                                tdata['EV24'].values, # evaoptranspiration
+                                tdata['q_up'].values, # upward seepage series (used if solution is 'L1q')
+                                tdata[ 'phi'].values, # head in lower aquifer (used if solution is 'L1f')
+                                )):
+            substep_max = 0
+            # Current recharge surplus
+            N = prec - ev24
+
+            # Current heads. Phi: either computed or given dependin on solution 'L1f' or 'L1q'
+            if solution_name == 'L1q':
+                    phi = h0[it] + c * q_up # as phi end of prev. time step
+
+            # Flow contubtions from substeps
+            dqv0, dqdr, dqb0 = 0., 0., 0.
+
+            # For solution 'L1q' we compute the head at end of time step twice
+            # because phi won't be otherwise correct.
+            # For solution 'L1f', no iterations are necessasry.
+            for iter in range(NITER): # iterate for phi, only when 'L1q', phi not given.
+                substep_counter = 0
+
+                # Initialize conainer for iteation within time step
+                hstrt = h0[it] # Init with walue of previous time
+
+                if it == 927:
+                        must_stop = False
+
+                # We work ourselves through the timestep in substeps if the head
+                # crosses the hdrain and the cdrain switches from and to np.inf.
+                t = t1 - dt # current time initiazed to start of time step.
+                while t < t1: # while not done
+                    substep_counter += 1
+
+                    # There should never be more than a few steps
+                    # Check that nothign goes astray.
+                    if substep_counter == 10:
                         print("Warning iteration {:it} no convergence!".format(it))
                         break
-                    # in or outflow resistance depeds on h - hLR
-                    # No further iterations. It wasn't necessary
-                    w_    = wo if hh[0] <= hlr else wi
-                    # Is drainage switching on?
-                    if   hh[0] > hdr + htol:   cdr_ = np.inf
-                    elif hh[0] < hdr - htol:   cdr_ = cdr
+
+                    # w_ditch depends on infiltration or exfiltration at current t.
+                    w_    = wo if hstrt <= hlr else wi
+
+                    # Drains active, if so, use cdrain else inf.
+                    if   hstrt > hdr + htol:
+                        cdr = cdrain
+                    elif hstrt < hdr - htol:
+                        cdr = np.inf
                     else:
-                        lam    = np.sqrt(k * D * c)
-                        Lamb   = 1 / ((b / lam) / np.tanh(b / lam) + (w_ / D) * (c / b))
-                        rising = (phi - hh[0]) + (N * c - Lamb * (N * c - (hlr - phi))) > 0
-                        if rising:      cdr_ = np.inf
-                        else:           cdr_ = cdr
-                    ch     = c  / (1 + c / cdr_)    # c_hat (see theory)
+                        phih   = (phi + (c / cdr) * hdr) / (1 + c / cdr)
+                        Th     = mu * ch
+                        vh = ((phih - hstrt) + (N * ch - (N * ch - (hlr - phih)) * Lambh)) / Th
+                        rising = vh > 0
+                        if rising:
+                            cdr = cdrain
+                            hstrt += 2 * htol
+                        else:
+                            cdr = np.inf
+                            hstrt -= 2 * htol
+
+                    # Mixed paramters, due to drainage
+                    ch     = c  / (1 + c / cdr)    # c_hat (see theory)
                     Th     = mu * ch
-                    phih   = (phi + (c / cdr_) * hdr) / (1 + c / cdr_)
+                    phih   = (phi + (c / cdr) * hdr) / (1 + c / cdr)
                     lamh   = np.sqrt(k * D * ch)
                     Lambh  = 1 / ((b / lamh) / np.tanh(b / lamh) + (w_ / D) * (ch / b))
                     B      = N * ch - Lambh * (N * ch - (hlr - phih))
-                    r      = (hh[0] - phih - B) / (hdr - phih - B)
-                    if r > 1:
+                    r      = (hstrt - phih - B) / (hdr - phih - B)
+
+                    # See if head crosses hdrain during current timestep
+                    if r > 1: # heads may cross if r > 1
                         dtau = Th * np.log(r) # estimate time step until crossing hdr
-                        if t + dtau > dt:
+                        if t + dtau > dt: # head crosses befofre end of time step?
                             dtau = t1 - t # limit to within current time step
                     else:
                         dtau = t1 - t
-                    e = np.exp(-dtau / Th)
-                    f = (1 - e) / (dtau / Th)
-                    hh[1] = phih + (hh[0] - phih) * e + (
+
+                    # Compute head at and of current (sub)-time step
+                    e = np.exp(-dtau / Th)     # At and of current time step.
+                    f = (1 - e) / (dtau / Th)  # Exact aveage over current time step.
+
+                    # head at t + dtau
+                    hend = phih + (hstrt - phih) * e + (
                         N * ch - Lambh * (N * ch - (hlr - phih))) * (1 - e)
-                    hm     = phih + (hh[0] - phih) * f + (
+
+                    # Exact mean head between t and t + dtau
+                    h0mean  = phih + (hstrt - phih) * f + (
                         N * ch - Lambh * (N * ch - (hlr - phih))) * (1 - f)
-                    qs0[it] += mu * np.diff(hh) / dtau * (dtau / dt)
-                    qv0[it] += (phi - hm) / c    * f * dtau / dt
-                    qdr[it] += (hm  - hdr) / cdr * f * dtau / dt
-                    hh[0] = hh[1]
+
+                    if iter == NITER:
+                        dqv0 = (h1mean - h0mean) / c    * dtau / dt
+                        dqdr = (h0mean - hdr   ) / cdr  * dtau / dt
+                        dqb0 = (N + dqv0 - dqdr - dqs0) * dtau / dt
+
+                    # Upate for next cycle within timestep
+                    hstrt = hend
                     t += dtau
-                qb0[it] += N + qv0[it] - qdr[it] - qs0[it]
-                h0[it+1] = hh[1]
+                    # END for t < t1
+                # Update for next iter
+                substep_max = max(substep_counter, substep_max)
+                if iter == NITER:
+                    qv0[it] += dqv0
+                    qdr[it] += dqdr
+                    qb0[it] += dqb0
+                # Update phi for the next iterataion
+                if solution_name == 'L1q':
+                    phi = (h0[it] + hend) / 2 + c * q_up
+                # END iter
+            # results below divided by 2 due to iteration iter
+            h0[it + 1] = hend
+            h1[it + 1] = phi
+            dqs0 = mu * (hend - h0[it])
+            dqs1 = S  * (phi  - h1[it])
+            qs0[it]  = mu * (h0[it + 1] - h0[it])
+            qs1[it]  = S  * (h1[it + 1] - h1[it])
+            if it % 100 == 0: print('.', end='')
+            # END it
+        # Gather results and store in tdata columns
+        HDS.data[0, ip, :] = h0[1:]
+        HDS.data[1, ip, :] = h1[1:]
 
-                if it % 100 == 0: print('.', end='')
-            HDS.data[0, ip, :] = h0[1:]
-            HDS.data[1, ip, :] = h1[1:]
+        # During which time steps infiltration and exfiltration to split
+        # The ditch flow like with MODFLOW over w_GHB AND W_RIV
+        L_out = h0[1:] > tdata['hLR'].values
+        L_in  = NOT(L_out)
+        CBC.data['GHB'][0, ip, L_in ] = - qb0[L_in]
+        CBC.data['GHB'][0, ip, L_out] = - qb0[L_out] * w_riv / (w_riv + w_ghb)
+        CBC.data['RIV'][0, ip, L_out] = - qb0[L_out] * w_ghb / (w_riv + w_ghb)
 
-            qb0 = N + qv0 - qdr - qs0
+        CBC.data['RCH'][0, ip, :] =  tdata['RH'].values
+        CBC.data['EVT'][0, ip, :] = -tdata['EV24'].values
+        CBC.data['DRN'][0, ip, :] = -qdr      #tdata['qdr']   = qdr
+        CBC.data['STO'][0, ip, :] = -qs0      #tdata['qs0']   = qs0
+        CBC.data['STO'][1, ip, :] = -qs1 # tdata['qs1']
+        CBC.data['FLF'][0, ip, :] = +qv0 - qs1     #tdata['qv0']   = qv0
+        CBC.data['FLF'][1, ip, :] = -qv0 + qs1    #tdata['qv1']   = qv1
+        CBC.data['WEL'][1, ip, :] =  q_up if solution_name == 'L1q' else qv0 + qs1
+        print('{} time steps, max_substeps = {}'.format(it, substep_max))
 
-            L_out = h0[1:] > hLR # Outflow to ditch, then split over GHB and RIV
-            L_in  = NOT(L_out)
-
-            CBC.data['RCH'][0][0, ip, :] =  tdata['RH'].values
-            CBC.data['EVT'][0][0, ip, :] = -tdata['EV24'].values
-            CBC.data['DRN'][0][0, ip, :] =  qdr[:] #tdata['qdr']   = qdr
-            CBC.data['GHB'][0][0, ip, L_in ] = qb0[L_in]
-            CBC.data['GHB'][0][0, ip, L_out] = qb0[L_out] * w_riv / (w_ghb + w_riv) # qb0
-            CBC.data['RIV'][0][0, ip, L_out] = qb0[L_out] * w_ghb / (w_ghb + w_riv)
-            CBC.data['STO'][0][0, ip, :] =  qs0[:] #tdata['qs0']   = qs0
-            CBC.data['STO'][0][1, ip, :] = S * np.diff(h1) / Dt
-            CBC.data['FLF'][0][0, ip, :] =  qv0[:] #tdata['qv0']   =  qv0
-            CBC.data['FLF'][0][1, ip, :] = -qv0[:] #tdata['qv1']   = -qv0
-            CBC.data['WEL'][0][1, ip, :] =  S * np.diff(h1) / Dt + qv0 # undetermined because phi is given
-            print(it)
-        print('Done.')
-
-
-    elif solution_name == 'L1q': # for given q_up (f)
-
-        print('Sumulating {}'.format(solution_name))
-
-        for ip in range(len(parcel_data)):
-            print('Parcel {}'.format(ip), end='')
-            props = parcel_data.iloc[ip]
-
-            b, c, wo, wi = props['b'], props['c_CB'], props['wo_ditch'], props['wi_ditch']
-            mu, S, k     =  props['sy'], props['S2'], props['kh']
-            cdr, hdr     = props['c_drain'], props['AHN'] - props['d_drain']
-            phi, D       = props['phi'], props['D1']
-
-            w_ghb = wi
-            w_riv = np.inf if wi < wo + wtol else wi * wo / (wi - wo)
-
-            hLR = np.zeros((nper)) * props['h_winter']
-            hLR[tdata['summer']] = props['h_summer']
-            h0 = np.ones(nper + 1)
-            h1 = np.zeros(nper + 1)
-            h0[0] = hLR[0]
-            h1[0] = hLR[0] # not used here.
-
-            # Fluxes computed on the go
-            qs0 = np.zeros(len(tdata))
-            qv0 = np.zeros(len(tdata))
-            qdr = np.zeros(len(tdata))
-            qb0 = np.zeros(len(tdata))
-
-            # add column q_up to tdata, using data from props
-            tdata['q_up'] = add_var_to_tseries(tdata, var='q_up', props=props)
-
-            for it, (dt, t1, hlr, RH, EV24, q_up) in enumerate(zip(
-                                    Dt,                   # time step
-                                    np.cumsum(Dt),        # t1 (end of time step)
-                                    hLR,                  # ditch water level
-                                    tdata[  'RH'].values, # precipirtation
-                                    tdata['EV24'].values, # evaoptranspiration
-                                    tdata['q_up'].values, # upward seepage series
-                                    )):
-                N = RH - EV24
-                hh = np.array([[h0[it], 0],
-                               [h0[it], 0]])
-                for iter in range(2): # iterate over phi because q_up is given
-                    loop_counter = 0
-                    phi = hh[iter][0] + q_up * c
-                    t = t1 - dt
-                    while t < t1:
-                        loop_counter += 1
-                        if loop_counter == 100:
-                            print("Warning iteration {:it} no convergence!".format(it))
-                            break
-
-                        w_    = wo if hh[iter][0] <= hlr else wi # in or outflow resistance depedning on h - hLE
-                        if   hh[iter][0] > hdr + htol:   cdr_ = np.inf
-                        elif hh[iter][0] < hdr - htol:   cdr_ = cdr
-                        else:
-                            lam    = np.sqrt(k * D * c)
-                            Lamb   = 1 / ((b / lam) / np.tanh(b / lam) + (w_ / D) * (c / b))
-                            rising = (phi - hh[iter][0]) + (N * c - Lamb * (N * c - (hlr - phi))) > 0
-                            if rising:      cdr_ = np.inf
-                            else:           cdr_ = cdr
-                        ch     = c  / (1 + c / cdr_)    # c_hat (see theory)
-                        Th     = mu * ch
-                        phih   = (phi + (c / cdr_) * hdr) / (1 + c / cdr_)
-                        lamh   = np.sqrt(k * D * ch)
-                        Lambh  = 1 / ((b / lamh) / np.tanh(b / lamh) + (w_ / D) * (ch / b))
-                        B      = N * ch - Lambh * (N * ch - (hlr - phih))
-                        r      = (hh[iter][0] - phih - B) / (hdr - phih - B)
-                        if r > 1:
-                            dtau = Th * np.log(r) # estimate time step until crossing hdr
-                            if t + dtau > dt:
-                                dtau = t1 - t # limit to within current time step
-                        else:
-                            dtau = t1 - t
-                        e = np.exp(-dtau / Th)
-                        f = (1 - e) / (dtau / Th)
-                        hh[iter][1] = phih + (hh[iter][0] - phih) * e + (
-                            N * ch - Lambh * (N * ch - (hlr - phih))) * (1 - e)
-                        hm     = phih + (hh[iter][0] - phih) * f + (
-                            N * ch - Lambh * (N * ch - (hlr - phih))) * (1 - f)
-                        qs0[it] += mu * np.diff(hh[iter]) / dtau * (dtau / dt)
-                        qv0[it] += (phi - hm) / c   * f * dtau / dt
-                        qdr[it] += (hm  - hdr) / cdr * f * dtau / dt
-                        hh[iter][0] = hh[iter][1]
-                        t += dtau
-                    qb0[it] += N + qv0[it] - qdr[it] - qs0[it]
-                    if iter == 0:
-                        hh[iter + 1][0] = hh[iter][1]
-                # results below divided by 2 due to iteration iter
-                h0[it+1] = hh[:, 1].mean() # mean of the two iterations at t1
-                h1[it+1] = (h0[it] + h0[it+1]) / 2 + q_up * c
-
-                qs0[it] /= 2 # due to iter, 2 loops
-                qv0[it] /= 2
-                qdr[it] /= 2
-                qb0[it] /= 2
-                if it % 100 == 0: print('.', end='')
-
-            # Gather results and store in tdata columns
-            L_out = h0[1:] > hLR # Outflow to ditch, then split over GHB and RIV
-            L_in  = NOT(L_out)
-
-            HDS.data[0, ip, :] = h0[1:]
-            HDS.data[1, ip, :] = h1[1:]
-            CBC.data['RCH'][0][0, ip, :] =  tdata['RH'].values
-            CBC.data['EVT'][0][0, ip, :] = -tdata['EV24'].values
-            CBC.data['DRN'][0][0, ip, :] =  qdr      #tdata['qdr']   = qdr
-            CBC.data['GHB'][0][0, ip, L_out] =  qb0[L_out]
-            CBC.data['GHB'][0][0, ip, L_in ] =  qb0[L_in ] * w_riv / (w_riv + w_ghb)
-            CBC.data['RIV'][0][0, ip, L_in ] =  qb0[L_in ] * w_ghb / (w_riv + w_ghb)
-            CBC.data['STO'][0][0, ip, :] =  qs0      #tdata['qs0']   = qs0
-            CBC.data['STO'][0][1, ip, :] =  S * np.diff(h1) / Dt # tdata['qs1']
-            CBC.data['FLF'][0][0, ip, :] = +qv0      #tdata['qv0']   = qv0
-            CBC.data['FLF'][0][1, ip, :] = -qv0      #tdata['qv1']   = qv1
-            CBC.data['WEL'][0][1, ip, :] =  q_up # prescribed
-            print(it)
-        print('Done.')
-
-    elif solution_name == 'xxL1q': # For given q_up
-        # Direct computation with given q_up
-        lamb = np.sqrt(k * D * c)
-        for it, (dt, hlr, RH, EV24, q_up) in enumerate(zip(Dt,
-                                tdata['hLR'].values,
-                                tdata['RH'].values,
-                                tdata['EV24'].values,
-                                tdata['q_up'].values)):
-            n = RH - EV24
-            w_ = wo if h0[it] < hlr else wi
-            Lamb[it] = 1 / ((b / lamb) / np.tanh(b / lamb) + (w_ / D) * (c  / b))
-            T = mu * c / Lamb[it]
-            e = np.exp(-dt / T)
-            h0[it + 1] =  hlr + (h0[it] - hlr) * e + (c * (n + q_up) * (1 - Lamb[it]) / Lamb[it]) * (1 - e)
-    else:
-        raise ValueError("Don't recognize solution name <{}>".
-                         format(solution_name))
+    HDS.GXG = GXG_obj(HDS)
+    print('Done.')
 
     return tdata, HDS, CBC
+
 
 def single_layer_steady(solution_name, props=None, tdata=None, dx=1.0):
     """Return simulated results for cross section.
@@ -835,8 +711,8 @@ def multi_layer_transient(parcel_data=None, tdata=None,  check=True, **kwargs):
     Dt  = np.hstack(((tdata.index[1] - tdata.index[0]) / np.timedelta64(1, 'D'),
                      np.diff((tdata.index - tdata.index[0]) / np.timedelta64(1, 'D'))))
 
-    HDS = HDS_obj(tdata=tdata, parcel_data=parcel_data)
-    CBC = CBC_obj(tdata=tdata, parcel_data=parcel_data)
+    HDS = HDS_obj(tdata=tdata, parcel_data=parcel_data, solution_name=solution_name)
+    CBC = CBC_obj(tdata=tdata, parcel_data=parcel_data, solution_name=solution_name)
 
     print('Simularing {}'.format('multi-layer transient.'))
 
@@ -931,21 +807,21 @@ def multi_layer_transient(parcel_data=None, tdata=None,  check=True, **kwargs):
         L_in1  = Phi[1] <= hLR
         L_out0 = Phi[0] >  hLR
         L_out1 = Phi[1] >  hLR
-        CBC.data['GHB'][0][0, ip, L_in0 ] = wriv / (wriv + wghb) * qb[0][L_in0 ]
-        CBC.data['GHB'][0][0, ip, L_out0] = wriv / (wriv + wghb) * qb[0][L_out0]
-        CBC.data['GHB'][0][1, ip, L_in1 ] = wriv / (wriv + wghb) * qb[1][L_in1 ]
-        CBC.data['GHB'][0][1, ip, L_out1] = wriv / (wriv + wghb) * qb[1][L_out1]
-        CBC.data['RIV'][0][0, ip, L_in0 ] = wghb / (wriv + wghb) * qb[0][L_in0 ]
-        CBC.data['RIV'][0][0, ip, L_out0] = wghb / (wriv + wghb) * qb[0][L_out0]
-        CBC.data['RIV'][0][1, ip, L_in1 ] = wghb / (wriv + wghb) * qb[1][L_in1 ]
-        CBC.data['RIV'][0][1, ip, L_out1] = wghb / (wriv + wghb) * qb[1][L_out1]
-        CBC.data['STO'][0][:, ip, :] = qs
-        CBC.data['RCH'][0][0, ip, :] =  tdata['RH'].values
-        CBC.data['EVT'][0][0, ip, :] = -tdata['EV24'].values
-        CBC.data['DRN'][0][0, ip, :] =  ql[0] - ql[1]
-        CBC.data['FLF'][0][0, ip, :] = -ql[1]
-        CBC.data['FLF'][0][1, ip, :] =  ql[1]     #tdata['ql1'] = ql[1]  # leakage from bo1 layer
-        CBC.data['WEL'][0][1, ip, :] =  q[1]
+        CBC.data['GHB'][0, ip, L_in0 ] = wriv / (wriv + wghb) * qb[0][L_in0 ]
+        CBC.data['GHB'][0, ip, L_out0] = wriv / (wriv + wghb) * qb[0][L_out0]
+        CBC.data['GHB'][1, ip, L_in1 ] = wriv / (wriv + wghb) * qb[1][L_in1 ]
+        CBC.data['GHB'][1, ip, L_out1] = wriv / (wriv + wghb) * qb[1][L_out1]
+        CBC.data['RIV'][0, ip, L_in0 ] = wghb / (wriv + wghb) * qb[0][L_in0 ]
+        CBC.data['RIV'][0, ip, L_out0] = wghb / (wriv + wghb) * qb[0][L_out0]
+        CBC.data['RIV'][1, ip, L_in1 ] = wghb / (wriv + wghb) * qb[1][L_in1 ]
+        CBC.data['RIV'][1, ip, L_out1] = wghb / (wriv + wghb) * qb[1][L_out1]
+        CBC.data['STO'][:, ip, :] = qs
+        CBC.data['RCH'][0, ip, :] =  tdata['RH'].values
+        CBC.data['EVT'][0, ip, :] = -tdata['EV24'].values
+        CBC.data['DRN'][0, ip, :] =  ql[0] - ql[1]
+        CBC.data['FLF'][0, ip, :] = -ql[1]
+        CBC.data['FLF'][1, ip, :] =  ql[1]     #tdata['ql1'] = ql[1]  # leakage from bo1 layer
+        CBC.data['WEL'][1, ip, :] =  q[1]
         print(it)
 
     HDS.GXG = GXG_obj(HDS)
@@ -1022,7 +898,7 @@ def plot_hydrological_year_boundaries(ax=None, tindex=None, **kwargs):
 class HDS_obj:
     """Object to store and retrieve the heads like the on of Modflow."""
 
-    def __init__(self, tdata=None, parcel_data=None):
+    def __init__(self, tdata=None, parcel_data=None, solution_name=None):
         """Return HDS_obj.
 
         Parameters
@@ -1032,6 +908,7 @@ class HDS_obj:
         tindex: index like pd.Datrame.index
             datetimes for hds
         """
+        self.solution_name = solution_name
         self.nparcel = len(parcel_data)
         self.nlay = 2 # for GGOR
         self.nper = len(tdata)
@@ -1042,7 +919,18 @@ class HDS_obj:
         #self.GXG = GXG_obj(self)
 
     def plot_gxg(self, ax=None, selection=[0, 1, 3, 4, 5], **kwargs):
-        """Plot GXG."""
+        """Plot GXG as markers.
+
+        Parameters
+        ----------
+        ax: plt.Axes
+            axes to plot on, may contain graphs.
+        selection: None, int, sequence
+            for which parcels to plot the GXG.
+        **kwargs
+            further arguments passed on to plt.plot()
+        """
+        selection = gt.selection_check(selection)
 
         self.GXG.plot(ax=None, selection=[0, 1, 3, 4, 5], **kwargs)
 
@@ -1058,21 +946,14 @@ class HDS_obj:
             which of the parcels to plot, none means all (first 5)
 
         """
-
-        if selection is None:
-            selection = range(min(5, self.nparcel))
-        elif isinstance(selection, int):
-            selection = slice(selection, selection + 1, 1)
-        elif not isinstance(selection, (list, tuple, np.ndarray, range)):
-            raise ValueError("Illegal selection type = {}.".format(
-                type(selection)) + " Use None, int, or a sequence or a range.")
+        selection = gt.selection_check(selection)
 
         ax = newfig2(titles=titles, xlabel=xlabel, ylabels=ylabels,
                      sharex=sharex, sharey=sharey,
                      size_inches=size_inches)
 
         clrs = 'brgkmcy'
-        for sel in selection:
+        for sel in range(self.nparcel)[selection]:
             clr = clrs[sel % len(clrs)]
             ax[0].plot(self.tindex, self.data[0][sel], clr, label='parcel {}'.format(sel))
             ax[1].plot(self.tindex, self.data[1][sel], clr, label='parcel {}'.format(sel))
@@ -1194,12 +1075,12 @@ class GXG_obj:
         nmax: int
             maximum number of graphs to plot
         """
-        if np.isscalar(selection): selection = [selection]
+        selection = gt.selection_check(selection)
 
         if 'colors' in kwargs:
             clrs = kwargs.pop('colors', 'brgkmcy')
 
-        for iclr, ip in enumerate(selection):
+        for iclr, ip in enumerate(range(self.nparcel)[selection]):
             g = self.gxg.T[ip]
             clr = clrs[iclr % len(clrs)]
             ax.plot(g['t'][g['v']], g['hd'][g['v']], clr, marker='o',
@@ -1214,7 +1095,7 @@ class GXG_obj:
              pd.Timestamp('{}-{:02d}-{:02d}'.format(hyears[-1], 2, 28)))
 
         lw = 0.5
-        for iclr, ip in enumerate(selection):
+        for iclr, ip in enumerate(range(self.nparcel)[selection]):
             clr = clrs[iclr % len(clrs)]
             ax.hlines(self.GXG['GVG'][self.GXG['id']==ip], *t, clr,
                       ls='solid'  , lw=lw, label='GVG parcel {}'.format(ip))
@@ -1234,7 +1115,7 @@ class CBC_obj:
     """
 
 
-    def __init__(self, tdata=None, parcel_data=None):
+    def __init__(self, tdata=None, parcel_data=None, solution_name=None):
         """Gerate a CBC instantiation for the cross sections.
 
         Parameters
@@ -1244,18 +1125,23 @@ class CBC_obj:
         parcel_data: pd.DataFrame
             parcel properties
         """
+        self.solution_name = solution_name
         self.tindex = tdata.index
         self.nper = len(tdata)
         self.nparcel = len(parcel_data)
         self.nlay = 2
         self.ncol = 1
         self.shape = (self.nlay, self.nparcel, self.nper)
-        self.labels = [k for k in LBL]
+        self.labels = [k for k in gt.watbal_label]
         self.Arel = parcel_data.A_parcel / np.sum(parcel_data.A_parcel)
 
-        dtype = [(lbl, float, (self.nlay, self.nparcel, self.nper))
-                                                 for lbl in self.labels]
-        self.data = np.zeros(1, dtype=dtype)
+        self.data = dict()
+        for lbl in gt.watbal_label:
+            self.data[lbl] = np.zeros(self.shape)
+
+        #dtype = [(lbl, float, (self.nlay, self.nparcel, self.nper))
+        #                                         for lbl in self.labels]
+        #self.data = np.zeros(1, dtype=dtype)
 
     def plot(self, titles=['top', 'bottom'], xlabel='time',
              ylabels=['flux [m/s]', 'flux [m/d]'], sharex=True, sharey=False,
@@ -1280,14 +1166,7 @@ class CBC_obj:
         ax: list of two axes
             plotting axes
         """
-        if selection is None:
-            selection = slice(0, self.nparcel, 1)
-        elif isinstance(selection, int):
-            selection = slice(0, selection, 1)
-        elif isinstance(selection, {tuple, list, np.ndarray, range, slice}):
-            pass
-        else:
-            raise ValueError("selection must be None (for all), an int or a sequence")
+        selection = gt.selection_check(selection)
 
         if ax is None:
             ax = newfig2(titles, xlabel, ylabels, sharex=sharex, sharey=sharey,
@@ -1304,16 +1183,16 @@ class CBC_obj:
             except:
                 raise ValueError('ax must be a list of two plt.Axis objectes.')
 
-        C0   = [LBL[k]['clr'] for k in self.data.dtype.names]
-        Lbl0 = [LBL[k]['leg'] for k in self.data.dtype.names]
+        C0   = [gt.watbal_label[k]['clr'] for k in self.data]
+        Lbl0 = [gt.watbal_label[k]['leg'] for k in self.data]
 
-        V0 = np.zeros((len(LBL), len(self.tindex)))
-        V1 = np.zeros((len(LBL), len(self.tindex)))
+        V0 = np.zeros((len(gt.watbal_label), len(self.tindex)))
+        V1 = np.zeros((len(gt.watbal_label), len(self.tindex)))
 
         Arel = self.Arel.values[selection, np.newaxis]
-        for i, lbl in enumerate(cbc_labels):
-            V0[i] = np.sum(self.data[lbl][0, 0, selection, :] * Arel, axis=-2)
-            V1[i] = np.sum(self.data[lbl][0, 1, selection, :] * Arel, axis=-2)
+        for i, lbl in enumerate(gt.watbal_label):
+            V0[i] = np.sum(self.data[lbl][0, selection, :] * Arel, axis=-2)
+            V1[i] = np.sum(self.data[lbl][1, selection, :] * Arel, axis=-2)
 
         ax[0].stackplot(self.tindex, (V0 * (V0>0)), colors=C0, labels=Lbl0)
         ax[0].stackplot(self.tindex, (V0 * (V0<0)), colors=C0) # no labels
@@ -1327,6 +1206,30 @@ class CBC_obj:
         plot_hydrological_year_boundaries(ax[1], tindex=self.tindex)
 
         return ax
+
+    def get_budget(self, selection=None):
+        """Return water budget a pd.DataFrame.
+        """
+        if selection is None:
+            selection = slice(0, self.nparcel, 1)
+        elif isinstance(selection, int):
+            selection = slice(0, selection, 1)
+        elif isinstance(selection, {tuple, list, np.ndarray, range, slice}):
+            pass
+        else:
+            raise ValueError("selection must be None (for all), an int or a sequence")
+
+        selection = gt.selection_check(selection)
+
+        Arel = self.Arel.values[selection, np.newaxis]
+
+        budget = pd.DataFrame(
+            {lbl + f'{i:}':
+             np.sum(self.data[lbl][i, selection, :] * Arel, axis=-2)
+             for i in (0, 1)
+             for lbl in gt.watbal_label.keys()})
+        budget.index.name = self.solution_name
+        return budget
 
 
 # Solution class
@@ -1495,11 +1398,21 @@ class Solution:
         """
         #self.ax = plot_2layer_heads_and_flows(tdata=self.tdata, props=self.props)
 
-        titles = [f'({self.name}) ' + title for title in titles]
+        titles = [f'(Solution {self.name}), ' + title for title in titles]
 
         self.CBC.plot(titles=titles, xlabel=xlabel,
              ylabels=ylabels, sharex=sharex, sharey=sharey,
              size_inches=size_inches, selection=selection, ax=ax, **kwargs)
+
+    def get_budget(self):
+        """Return wat budget at given time or index.
+
+        Parameters
+        ----------
+        timestamp: pd.Timestamp, np.datetime64 or int
+            datrtime or index at which water budget is requested.
+        """
+        return self.CBC.get_budget()
 
 # Specific analytical solution as classes derived from base class "Solution".
 class L1f(Solution):
@@ -1557,7 +1470,7 @@ class Lnum(Solution):
 if __name__ == '__main__':
     # home = '/Users/Theo/GRWMODELS/python/GGOR/'
 
-    test=False
+    test=True
     size_inches = (14, 10)
 
     # Parameters to generate the model. Well use this as **kwargs
@@ -1568,14 +1481,22 @@ if __name__ == '__main__':
     dirs = gt.Dir_struct(GGOR_home, case=case)
 
     #Get the meteo tdata from an existing file or directly from KNMI
-    meteo_data = knmi.get_weather(stn=240, start='20100101', end='20191231')
+    meteo_data = knmi.get_weather(stn=240, start='20100101', end='20191231',
+                                  folder=dirs.meteo)
 
     # Add columns "summer' and "hyear" to it"
     tdata = gt.handle_meteo_data(meteo_data, summer_start=4, summer_end=10)
 
+
     if test:
+        # Change the tdata such that we have a smooth input
+        tdata = gt.gen_testdata(tdata=tdata,
+                              RH  =(270, 0.0, 0.000, 0.000, 0.002),
+                              EV24=(180, 0.0, 0.000, 0.000),
+                              )
+
         parcel_data = gt.get_test_parcels(os.path.join(
-                                dirs.case, 'pdata_test.xlsx'), 'parcel_tests')
+                                dirs.case, 'pdata_test.xlsx'), 'parcel_tests1').iloc[:4]
     else:
         # Bofek data, coverting from code to soil properties (kh, kv, sy)
         # The BOFEK column represents a dutch standardized soil type. It is used.
@@ -1594,17 +1515,20 @@ if __name__ == '__main__':
         l1f = L1f(parcel_data=parcel_data)
         l1f.sim(tdata=tdata)
         l1f.plot_heads()
-        l1f.plot_heads()
-    elif False: # analytic with given seepage from regional aquifer
+        l1f.plot_cbc()
+        budget = l1f.CBC.get_budget()
+    elif True: # analytic with given seepage from regional aquifer
         l1q = L1q(parcel_data=parcel_data)
         l1q.sim(tdata=tdata)
         l1q.plot_heads()
         l1q.plot_cbc()
-    elif True: # Analytic two layers, with ditches in both aquifers
+        budget = l1q.CBC.get_budget()
+    elif False: # Analytic two layers, with ditches in both aquifers
         l2 = L2(parcel_data=parcel_data)
         l2.sim(tdata=tdata)
         l2.plot_heads()
         l2.plot_cbc()
+        budget = l2.CBC.get_budget()
     elif False: # numerical with dichtes in both aquifers
         mf = Lnum(parcel_data=parcel_data)
         mf.sim(tdata=tdata)
