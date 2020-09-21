@@ -3500,8 +3500,8 @@ De differentiaalvergelijking zonder drainage is als volgt
 \begin_layout Standard
 \begin_inset Formula 
 \begin{align*}
-\frac{d\overline{h}}{dt} & =\left\{ \phi-\overline{h}_{0}+Nc-\left[Nc-\left(h_{LR}-\phi\right)\right]\Lambda\right\} e^{-\frac{t-t_{0}}{T}}\\
- & =\left\{ \phi-\overline{h}_{0}+B\right\} e^{-\frac{t-t_{0}}{T}}
+\frac{d\overline{h}}{dt} & =\frac{1}{T}\left\{ \phi-\overline{h}_{0}+Nc-\left[Nc-\left(h_{LR}-\phi\right)\right]\Lambda\right\} e^{-\frac{t-t_{0}}{T}}\\
+ & =\frac{1}{T}\left\{ \phi-\overline{h}_{0}+B\right\} e^{-\frac{t-t_{0}}{T}}
 \end{align*}
 
 \end_inset
@@ -3510,7 +3510,271 @@ De differentiaalvergelijking zonder drainage is als volgt
 \end_layout
 
 \begin_layout Standard
-Deze stijgt wanneer 
+met
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+B=\left[Nc-\left(h_{LR}-\phi\right)\right]\Lambda
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Deze stijgt wanneer
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+rising=\left(\phi-\overline{h}_{0}+B\right)>0
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Het moment waarop de grondwaterstand het drainniveau snijdt volgt uit
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+z_{dr}-\phi=\left(\overline{h}_{0}-\phi\right)e^{-\frac{t-t_{0}}{T}}+\left\{ Nc-\left[Nc-\left(h_{LR}-\phi\right)\right]\Lambda\right\} \left(1-e^{-\frac{t-t_{0}}{T}}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+z_{dr}-\phi-B=\left(\overline{h}_{0}-\phi-B\right)e^{-\frac{t-t_{0}}{T}}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+dus
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\Delta t=t-t_{0}=T\ln\left(\frac{\overline{h}_{0}-\phi-B}{z_{dr}-\phi-B}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Dit levert alleen een toekomstige doorsnijding op wanneer het argument van
+ de log groter is dan 1.
+ In het model moet dan worden gekeken of de doorsnijding binnen de huidige
+ tijdstap valt of daarna.
+\end_layout
+
+\begin_layout Standard
+De hoeveelheid water die bij de doorsnijding van het drainageniveau moet
+ worden afgevoerd is gelijk aan
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+q_{dr}=\mu\left(\frac{d\overline{h}}{dt}\right)_{\tau,\,\overline{h}=z_{dr}}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+q_{dr}=\mu\frac{d\overline{h}}{dt} & =\frac{\mu}{T}\left\{ \phi-\overline{h}_{0}+B\right\} e^{-\frac{t-t_{0}}{T}},\,t>t_{0}+\Delta t
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+en met 
+\begin_inset Formula $T=\mu c$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+q_{dr}= & =\frac{1}{c}\left\{ \phi-\overline{h}_{0}+B\right\} e^{-\frac{t-t_{0}}{T}},\,t>t_{0}+\Delta t
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Deze 
+\begin_inset Formula $q_{dr}$
+\end_inset
+
+ is dus een functie van de tijd.
+ 
+\end_layout
+
+\begin_layout Standard
+Ik weet niet of dit helemaal zuiver is, want met het aftrekken van 
+\begin_inset Formula $N$
+\end_inset
+
+ verandert ook de stijghoogte zelf.
+ Dus geldt 
+\begin_inset Formula $q_{dr}$
+\end_inset
+
+ alleen op het moment van aantippen van het drainageniveau.
+ Hoe dan wel? Probeer of 
+\begin_inset Formula $h$
+\end_inset
+
+ constant kan worden gehouden en gelijk aan 
+\begin_inset Formula $z_{dr}$
+\end_inset
+
+ voor 
+\begin_inset Formula $t>t_{0}+\Delta t$
+\end_inset
+
+, met 
+\begin_inset Formula $\tau=t-\left(t_{0}+\Delta t\right)$
+\end_inset
+
+.
+ Merk op dat dan ook 
+\begin_inset Formula $\overline{h_{0}}=z_{dr}.$
+\end_inset
+
+De vergelijking wordt dan als volgt
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+z_{dr}-\phi & =\left(z_{dr}-\phi\right)e^{-\frac{\tau}{T}}+\left\{ \left(N-q_{dr}\right)c-\left[\left(N-q_{dr}\right)c-\left(h_{LR}-\phi\right)\right]\Lambda\right\} \left(1-e^{-\frac{\tau}{T}}\right)
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\left(z_{dr}-\phi\right)\left(1-e^{-\frac{\tau}{T}}\right) & =\left\{ \left(N-q_{dr}\right)c-\left[\left(N-q_{dr}\right)c-\left(h_{LR}-\phi\right)\right]\Lambda\right\} \left(1-e^{-\frac{\tau}{T}}\right)
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\left(z_{dr}-\phi\right) & =\left(N-q_{dr}\right)c-\left[\left(N-q_{dr}\right)c-\left(h_{LR}-\phi\right)\right]\Lambda
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\left(z_{dr}-\phi\right) & =\left(N-q_{dr}\right)c\left(1-\Lambda\right)+\left(h_{LR}-\phi\right)\Lambda
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+q_{dr} & =N+\left(\frac{\phi-z_{dr}}{c}\right)\frac{1}{1-\Lambda}-\left(\frac{\phi-h_{LR}}{c}\right)\frac{\Lambda}{1-\Lambda}
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Het resultaat is een simpele uitdrukking die ook begrijpelijk is.
+ De hoeveelheid water die door het drainagevlak stroomt is gelijk aan de
+ neerslag plus wat door de diepe stijghoogte wordt aangevoerd min wat door
+ de sloten wordt afgevoerd.
+ Interessant is dat wanneer 
+\begin_inset Formula $\phi=z_{dr}$
+\end_inset
+
+ en 
+\begin_inset Formula $\phi=h_{LR}$
+\end_inset
+
+, dat 
+\begin_inset Formula $q_{dr}$
+\end_inset
+
+ dan gelijk moet zijn aan 
+\begin_inset Formula $N$
+\end_inset
+
+.
+ Immers alleen dan is er geen enkele stroming.
+ En wanneer 
+\begin_inset Formula $h_{LR}=z_{dr}$
+\end_inset
+
+ de twee laatste termen samen gelijk zijn aan
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+q_{dr}=N+\left(\frac{\phi-z_{dr}}{c}\right),\,\,\,\,\,h_{LR}=z_{dr}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Ook dit is evident juist.
 \end_layout
 
 \begin_layout Section
