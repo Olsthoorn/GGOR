@@ -2891,7 +2891,7 @@ Kunnen we dan niet beter het punt opzoeken waar
 \begin_layout Standard
 \begin_inset Formula 
 \begin{align*}
-\overline{h}-\hat{\phi} & =\left(\overline{h}_{0}-\hat{\phi}\right)e^{-\frac{t-t_{0}}{\hat{T}}}+\left\{ N\hat{c}-\left[N\hat{c}-\left(h_{LR}-\hat{\phi}\right)\right]\Lambda\right\} \left(1-e^{-\frac{t-t_{0}}{\hat{T}}}\right)
+\overline{h}-\hat{\phi} & =\left(\overline{h}_{0}-\hat{\phi}\right)e^{-\frac{t-t_{0}}{\hat{T}}}+\left\{ N\hat{c}-\left[N\hat{c}-\left(h_{LR}-\hat{\phi}\right)\right]\hat{\Lambda}\right\} \left(1-e^{-\frac{t-t_{0}}{\hat{T}}}\right)
 \end{align*}
 
 \end_inset
@@ -2914,7 +2914,7 @@ Dus met
 \begin_layout Standard
 \begin_inset Formula 
 \[
-y=Ae^{-\frac{\tau-t_{0}}{\hat{T}}}+B\left(1-e^{-\frac{\tau-t_{0}}{\hat{T}}}\right)
+z_{dr}-\hat{\phi}=\left(h_{0}-\hat{\phi}\right)e^{-\frac{\tau-t_{0}}{\hat{T}}}+B\left(1-e^{-\frac{\tau-t_{0}}{\hat{T}}}\right)
 \]
 
 \end_inset
@@ -2929,7 +2929,7 @@ met
 \begin_layout Standard
 \begin_inset Formula 
 \[
-y=z_{dr}-\hat{\phi}
+B=N\hat{c}-\left[N\hat{c}-\left(h_{LR}-\hat{\phi}\right)\right]\hat{\Lambda}
 \]
 
 \end_inset
@@ -2964,9 +2964,9 @@ Wat is
 \begin_layout Standard
 \begin_inset Formula 
 \begin{align*}
-y-B & =\left(A-B\right)e^{-\frac{\tau-t_{0}}{\hat{T}}}\\
-\ln\frac{y-B}{A-B} & =-\frac{\tau-t_{0}}{\hat{T}}\\
-\frac{\tau-t_{0}}{\hat{T}} & =\ln\frac{A-B}{y-B}
+z_{dr}-\hat{\phi}-B & =\left(\left(h_{0}-\hat{\phi}\right)-B\right)e^{-\frac{\tau-t_{0}}{\hat{T}}}\\
+\ln\left(\frac{z_{dr}-\hat{\phi}-B}{h_{0}-\hat{\phi}-B}\right) & =-\frac{\tau-t_{0}}{\hat{T}}\\
+\tau & =t_{0}+\hat{T}\,\ln\left(\frac{\hat{\phi}-h_{0}+B}{\hat{\phi}-z_{dr}+B}\right)
 \end{align*}
 
 \end_inset
@@ -2977,7 +2977,7 @@ of
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\frac{\tau-t_{0}}{\hat{T}}=\ln\left(\frac{\overline{h}_{0}-\hat{\phi}-B}{z_{dr}-\hat{\phi}-B}\right)
+\frac{\tau-t_{0}}{\hat{T}}=\ln\left(\frac{\hat{\phi}-h_{0}+B}{\hat{\phi}-z_{dr}+B}\right)
 \]
 
 \end_inset
@@ -2986,9 +2986,14 @@ of
 \end_layout
 
 \begin_layout Standard
+Dus de tijd totdat de grondwaterstand het drainniveau aantikt (van boven
+ of van onderen) is
+\end_layout
+
+\begin_layout Standard
 \begin_inset Formula 
 \[
-d\tau=\hat{T}\:\ln\left(\frac{\overline{h}_{0}-\hat{\phi}-B}{z_{dr}-\hat{\phi}-B}\right)
+d\tau=\hat{T}\:\ln\left(\frac{\hat{\phi}-h_{0}+B}{\hat{\phi}-z_{dr}+B}\right)
 \]
 
 \end_inset
@@ -3012,21 +3017,6 @@ d\tau=\tau-t_{0}
 \end_layout
 
 \begin_layout Standard
-en
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-B=Nc-\left[Nc-\left(h_{LR}-\phi\right)\right]\Lambda
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
 De voorwaarde is dat het argument van de 
 \begin_inset Formula $ln$
 \end_inset
@@ -3035,13 +3025,13 @@ De voorwaarde is dat het argument van de
 \begin_inset Formula $\tau>0$
 \end_inset
 
-.
+, dus moet het argument van de logaritme groter zijn dan 1.
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \begin{align*}
-\frac{\overline{h}_{0}-\hat{\phi}-B}{z_{dr}-\hat{\phi}-B} & >1
+r=\frac{\hat{\phi}-h_{0}+B}{\hat{\phi}-z_{dr}+B} & >1
 \end{align*}
 
 \end_inset
@@ -3050,26 +3040,107 @@ De voorwaarde is dat het argument van de
 \end_layout
 
 \begin_layout Standard
-Dit is equivalent aan 
-\begin_inset Formula $\frac{\overline{h}_{0}}{z_{dr}}>0$
+Voor welke 
+\begin_inset Formula $h_{0}$
 \end_inset
 
- ofwel het teken van 
-\begin_inset Formula $\overline{\ensuremath{h}_{0}}$
-\end_inset
-
- moet hetzelfde zijn als dat van 
-\begin_inset Formula $z_{dr}$
-\end_inset
-
-.
- 
+ is dit het geval?
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \begin{align*}
-\overline{h}-\hat{\phi} & =\left(\overline{h}_{0}-\hat{\phi}\right)e^{-\frac{t-t_{0}}{\hat{T}}}+\left\{ N\hat{c}-\left[N\hat{c}-\left(h_{LR}-\hat{\phi}\right)\right]\Lambda\right\} \left(1-e^{-\frac{t-t_{0}}{\hat{T}}}\right)
+\hat{\phi}-h_{0}+B & >\hat{\phi}-z_{dr}+B,\,\,\,\,\,\hat{\phi}-z_{dr}+B>0\\
+\hat{\phi}-h_{0}+B & <\hat{\phi}-z_{dr}+B,\,\,\,\,\,\hat{\phi}-z_{dr}+B<0
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+dus, de voorwaarde dat 
+\begin_inset Formula $r>1$
+\end_inset
+
+ en dus dat de grondwaterstand ergens in de toekomst het drainageniveau
+ 
+\begin_inset Formula $z_{dr}$
+\end_inset
+
+ snijdt is als volgt
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+h_{0} & <z_{dr},\,\,\,\,\,\hat{\phi}>z_{dr}+B\\
+h_{0} & >z_{dr},\,\,\,\,\,\hat{\phi}<z_{dr}+B
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+In woorden: Als 
+\begin_inset Formula $\hat{\phi}$
+\end_inset
+
+ hoog genoeg is dan moet 
+\begin_inset Formula $h_{0}$
+\end_inset
+
+ zich onder het drainage niveau bevinden en neemt 
+\begin_inset Formula $h$
+\end_inset
+
+ in de tijd monotoon toe.
+ Als 
+\begin_inset Formula $\hat{\phi}$
+\end_inset
+
+ lager is dan 
+\begin_inset Formula $z_{dr}+B$
+\end_inset
+
+, dan moet 
+\begin_inset Formula $h_{0}>z_{dr}$
+\end_inset
+
+ om in de toekomst het drainageniveau te gaan snijden; 
+\begin_inset Formula $h$
+\end_inset
+
+ is dan monotoon dalend.
+ Beide condities en situaties zijn dus gedekt door 
+\begin_inset Formula $r>1$
+\end_inset
+
+ als voorwaarde.
+ We hoeven alleen te controleren of dit moment van doorsnijden van het drainagen
+iveau binnen de huidige tijdstap valt.
+ Zo ja dan moet de tijdstap worden opgedeeld omdat de drainageweerstand
+ verandert bij het passeren van het drainageniveau.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\overline{h}-\hat{\phi} & =\left(\overline{h}_{0}-\hat{\phi}\right)e^{-\frac{t-t_{0}}{\hat{T}}}+\left\{ N\hat{c}-\left[N\hat{c}-\left(h_{LR}-\hat{\phi}\right)\right]\hat{\Lambda}\right\} \left(1-e^{-\frac{t-t_{0}}{\hat{T}}}\right)
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\overline{h}-\hat{\phi} & =\left(\overline{h}_{0}-\hat{\phi}\right)e^{-\frac{t-t_{0}}{\hat{T}}}+B\left(1-e^{-\frac{t-t_{0}}{\hat{T}}}\right)
 \end{align*}
 
 \end_inset
@@ -3096,12 +3167,614 @@ Gaat
 \begin_layout Standard
 \begin_inset Formula 
 \begin{align*}
-\frac{d\overline{h}}{dt} & =\left[\left(\hat{\phi}-\overline{h}\right)+\left\{ Nc-\left[Nc-\left(h_{LR}-\phi\right)\right]\Lambda\right\} \right]\frac{e^{-\frac{t-t_{0}}{\hat{T}}}}{\overline{T}}
+\frac{d\overline{h}}{dt} & =\left\{ \left(\hat{\phi}-\overline{h}_{0}\right)+N\hat{c}-\left[N\hat{c}-\left(h_{LR}-\hat{\phi}\right)\right]\hat{\Lambda}\right\} e^{-\frac{t-t_{0}}{\hat{T}}}
 \end{align*}
 
 \end_inset
 
 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\frac{d\overline{h}}{dt} & =\left\{ \hat{\phi}-\overline{h}+B\right\} \frac{e^{-\frac{t-t_{0}}{\hat{T}}}}{\hat{T}}
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Aangezien de rechter factor altijd positief is is het ter bepaling van de
+ vraag of de grondwaterstand al dan niet stijgt voldoende om alleen de andere
+ factor te checken:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+rising & =\hat{\phi}-\overline{h}+B>0\\
+rising & =\overline{h}-\hat{\phi}>B
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+De hamvraag wat gebeurt er op het moment dat de grondwaterstand het drainniveau
+ snijdt en daardoor de drainageweerstand verandert? Kan dan het teken van
+ 
+\begin_inset Formula $\frac{dh}{dt}$
+\end_inset
+
+ veranderen.
+ Mijn intuïtie zegt van niet.
+ Hoe kunnen we dat verifiëren?
+\end_layout
+
+\begin_layout Standard
+Wat is 
+\begin_inset Formula $\left(\frac{d\overline{h}}{dt}\right)_{h=z_{dr}}$
+\end_inset
+
+?
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\left(\frac{d\overline{h}}{dt}\right)_{h_{0}=z_{dr}} & =\left[\left(\hat{\phi}-\overline{h}_{0\left(\overline{h}_{0}=z_{dr}\right)}\right)+N\hat{c}-\left[N\hat{c}-\left(h_{LR}-\hat{\phi}\right)\right]\hat{\Lambda}\right]\frac{e^{-\frac{d\tau}{\hat{T}}}}{\hat{T}}
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+We kunnen dit numeriek onderzoeken door de onderstaande uitdrukking te zien
+ als functie van 
+\begin_inset Formula $c_{dr}$
+\end_inset
+
+ en dan te zien of het teken kan veranderen als 
+\begin_inset Formula $c_{dr}$
+\end_inset
+
+ varieert van nul tot 
+\begin_inset Formula $\infty$
+\end_inset
+
+.
+ De factor voor de exponent uitgeschreven is
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+y\left(c_{dr}\right)=\left(\frac{\phi+z_{dr}\frac{c}{c_{dr}}}{1+\frac{c}{c_{dr}}}-z_{dr}\right)+N\frac{c}{1+\frac{c}{c_{dr}}}-\left[N\frac{c}{1+\frac{c}{c_{dr}}}-\left(h_{LR}-\frac{\phi+z_{dr}\frac{c}{c_{dr}}}{1+\frac{c}{c_{dr}}}\right)\right]\hat{\Lambda}\label{eq:y_cdr}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Dit is niet zo makkelijk formeel te doen vanwege de afgeleide naar 
+\begin_inset Formula $c_{dr}$
+\end_inset
+
+ in 
+\begin_inset Formula $\hat{\Lambda}$
+\end_inset
+
+.
+ Daarom zullen het teken van 
+\begin_inset Formula $y$
+\end_inset
+
+ als functie van 
+\begin_inset Formula $c_{dr}$
+\end_inset
+
+ numeriek bekijken.
+\end_layout
+
+\begin_layout Standard
+Iets makkelijker wordt het door te kiezen 
+\begin_inset Formula $\phi=h_{LR}=z_{dr}=0$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+y\left(c_{dr}\right)=N\frac{c}{1+\frac{c}{c_{dr}}}\left(1-\hat{\Lambda}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Figuur 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:Verband-van-tussen-y-en-cdr"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ laat voor een bepaalde set parameters het verband zien tussen y en verschillend
+e andere parameters en de drainageweerstand.
+ De lijnen verschillen wanneer andere uitgangswaarden worden gebruikt.
+ Echter dit voorbeeld laat zien dat het teken van 
+\begin_inset Formula $y$
+\end_inset
+
+ van teken kan wisselen als een andere drainageweerstand wordt gekozen.
+ Dit betekent dat een stijgende grondwaterstand door het omschakelen van
+ 
+\begin_inset Formula $c_{dr}=\infty$
+\end_inset
+
+ naar de 
+\begin_inset Formula $c_{dr}=c_{drain}$
+\end_inset
+
+ ertoe kan leiden dat de waterstand direct weer terugzakt de drainage als
+ infiltratie gaat werken, of, wanneer de drainageweerstand weer terugschakelt
+ de grondwaterstand een zaagtandverloop krijgt.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename y_vs_cdr.png
+	width 90text%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:Verband-van-tussen-y-en-cdr"
+
+\end_inset
+
+Verband van tussen y en andere parameters als functie van de drainageweerstand
+ 
+\begin_inset Formula $c_{dr}$
+\end_inset
+
+, voor verschillende slootweerstanden.
+ 
+\begin_inset Formula $w=2$
+\end_inset
+
+ d, 
+\begin_inset Formula $k=10$
+\end_inset
+
+ m/d, 
+\begin_inset Formula $D=10$
+\end_inset
+
+m, 
+\begin_inset Formula $c=150$
+\end_inset
+
+ d, 
+\begin_inset Formula $N=0.01$
+\end_inset
+
+, 
+\begin_inset Formula $q_{up}$
+\end_inset
+
+ is niet gebruikt, zie 
+\begin_inset Formula $\phi$
+\end_inset
+
+ en 
+\begin_inset Formula $\phi_{h}$
+\end_inset
+
+ in de titel van de grafiek.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Dit euvel treedt alleen op wanneer de het drainageniveau, het slootpeil
+ en de diepe stijghoogte in een bepaalde verhouding tot elkaar staan en
+ dan nog alleen wanneer de drainageweerstand beneden een bepaalde waarde
+ ligt die weer van dezelfde parameters afhangt.
+\end_layout
+
+\begin_layout Standard
+In de praktijk gebeurt dit nooit, omdat de drainageweerstand altijd continu
+ afneemt tot de waarde die behoort bij ondergedompelde drains.
+ Het evenwichtsniveau stel zich dan zodanig in dat het peil een bepaalde
+ waarde in de drains heeft die overeenkomt met een weerstand die juist de
+ aangevoerde drainageflux afvoert.
+ Bij werkelijke percelen ligt dit nog iets genuanceerder omdat daar de drainagew
+eerstand groeit met het breder worden van dat deel van de drains dat daadwerkeli
+jke afvoert.
+ Ook dat leidt tot een evenwicht tussen weerstand en afvoer.
+ Dit laatste werkt ook zo ongeveer bij MODFLOW wanneer een doorsnede bestaat
+ uit meerdere cellen.
+ Echter ook MODFLOW kan staan 
+\begin_inset Quotes pld
+\end_inset
+
+dansen
+\begin_inset Quotes prd
+\end_inset
+
+ wanneer de drainageweerstand te klein wordt gekozen.
+ Bij kleine cellen en een opbolling die zich vanuit het midden verbreedt,
+ hebben we daar bij MODFLOW nauwelijks of zelden last van.
+ En als het gebeurt, waardoor nauwelijks convergentie optreedt, is de oplossing
+ om de drainageweerstand wat hoger te kiezen.
+ Voor onze analytische aanpak zoeken we nu een intelligentere oplossing
+ die altijd werkt.
+\end_layout
+
+\begin_layout Subsection
+Betere afhandeling van drainage
+\end_layout
+
+\begin_layout Standard
+De implementatie van drainage met samengestelde parameters als 
+\begin_inset Formula $\hat{\phi}$
+\end_inset
+
+ en 
+\begin_inset Formula $\hat{c}$
+\end_inset
+
+ leidt tot problemen wanneer de stijgende grondwaterstand het drainageniveau
+ doorsnijdt en dan plotseling gaat zakken, omdat de drainageweerstand te
+ klein is geworden.
+ Om dit te voorkomen ontwikkelen we hier een andere aanpak.
+ Deze beschrijft de stroming met formules die geen rekening te houden met
+ drainage.
+ Wanneer de grondwaterstand echter het drainageniveau snijdt, dan grijpen
+ we in door de hoeveelheid water die door het vlak van drainage opstijgt
+ van het neerslagoverschot af te trekken.
+ Het gevolg is dat de stijghoogte verder gelijk blijft aan het drainageniveau
+ en dat we met de afgetrokken flux de drainageflux (of de oppervlakteafvoer)
+ direct in handen hebben voor de waterbalans.
+\end_layout
+
+\begin_layout Standard
+De differentiaalvergelijking zonder drainage is als volgt
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\overline{h}-\phi & =\left(\overline{h}_{0}-\phi\right)e^{-\frac{t-t_{0}}{T}}+\left\{ Nc-\left[Nc-\left(h_{LR}-\phi\right)\right]\Lambda\right\} \left(1-e^{-\frac{t-t_{0}}{T}}\right)
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\frac{d\overline{h}}{dt} & =\frac{1}{T}\left\{ \phi-\overline{h}_{0}+Nc-\left[Nc-\left(h_{LR}-\phi\right)\right]\Lambda\right\} e^{-\frac{t-t_{0}}{T}}\\
+ & =\frac{1}{T}\left\{ \phi-\overline{h}_{0}+B\right\} e^{-\frac{t-t_{0}}{T}}
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+met
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+B=\left[Nc-\left(h_{LR}-\phi\right)\right]\Lambda
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Deze stijgt wanneer
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+rising=\left(\phi-\overline{h}_{0}+B\right)>0
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Het moment waarop de grondwaterstand het drainniveau snijdt volgt uit
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+z_{dr}-\phi=\left(\overline{h}_{0}-\phi\right)e^{-\frac{t-t_{0}}{T}}+\left\{ Nc-\left[Nc-\left(h_{LR}-\phi\right)\right]\Lambda\right\} \left(1-e^{-\frac{t-t_{0}}{T}}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+z_{dr}-\phi-B=\left(\overline{h}_{0}-\phi-B\right)e^{-\frac{t-t_{0}}{T}}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+dus
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\Delta t=t-t_{0}=T\ln\left(\frac{\overline{h}_{0}-\phi-B}{z_{dr}-\phi-B}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Dit levert alleen een toekomstige doorsnijding op wanneer het argument van
+ de log groter is dan 1.
+ In het model moet dan worden gekeken of de doorsnijding binnen de huidige
+ tijdstap valt of daarna.
+\end_layout
+
+\begin_layout Standard
+De hoeveelheid water die bij de doorsnijding van het drainageniveau moet
+ worden afgevoerd is gelijk aan
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+q_{dr}=\mu\left(\frac{d\overline{h}}{dt}\right)_{\tau,\,\overline{h}=z_{dr}}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+q_{dr}=\mu\frac{d\overline{h}}{dt} & =\frac{\mu}{T}\left\{ \phi-\overline{h}_{0}+B\right\} e^{-\frac{t-t_{0}}{T}},\,t>t_{0}+\Delta t
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+en met 
+\begin_inset Formula $T=\mu c$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+q_{dr}= & =\frac{1}{c}\left\{ \phi-\overline{h}_{0}+B\right\} e^{-\frac{t-t_{0}}{T}},\,t>t_{0}+\Delta t
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Deze 
+\begin_inset Formula $q_{dr}$
+\end_inset
+
+ is dus een functie van de tijd.
+ 
+\end_layout
+
+\begin_layout Standard
+Ik weet niet of dit helemaal zuiver is, want met het aftrekken van 
+\begin_inset Formula $N$
+\end_inset
+
+ verandert ook de stijghoogte zelf.
+ Dus geldt 
+\begin_inset Formula $q_{dr}$
+\end_inset
+
+ alleen op het moment van aantippen van het drainageniveau.
+ Hoe dan wel? Probeer of 
+\begin_inset Formula $h$
+\end_inset
+
+ constant kan worden gehouden en gelijk aan 
+\begin_inset Formula $z_{dr}$
+\end_inset
+
+ voor 
+\begin_inset Formula $t>t_{0}+\Delta t$
+\end_inset
+
+, met 
+\begin_inset Formula $\tau=t-\left(t_{0}+\Delta t\right)$
+\end_inset
+
+.
+ Merk op dat dan ook 
+\begin_inset Formula $\overline{h_{0}}=z_{dr}.$
+\end_inset
+
+De vergelijking wordt dan als volgt
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+z_{dr}-\phi & =\left(z_{dr}-\phi\right)e^{-\frac{\tau}{T}}+\left\{ \left(N-q_{dr}\right)c-\left[\left(N-q_{dr}\right)c-\left(h_{LR}-\phi\right)\right]\Lambda\right\} \left(1-e^{-\frac{\tau}{T}}\right)
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\left(z_{dr}-\phi\right)\left(1-e^{-\frac{\tau}{T}}\right) & =\left\{ \left(N-q_{dr}\right)c-\left[\left(N-q_{dr}\right)c-\left(h_{LR}-\phi\right)\right]\Lambda\right\} \left(1-e^{-\frac{\tau}{T}}\right)
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\left(z_{dr}-\phi\right) & =\left(N-q_{dr}\right)c-\left[\left(N-q_{dr}\right)c-\left(h_{LR}-\phi\right)\right]\Lambda
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\left(z_{dr}-\phi\right) & =\left(N-q_{dr}\right)c\left(1-\Lambda\right)+\left(h_{LR}-\phi\right)\Lambda
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+q_{dr} & =N+\left(\frac{\phi-z_{dr}}{c}\right)\frac{1}{1-\Lambda}-\left(\frac{\phi-h_{LR}}{c}\right)\frac{\Lambda}{1-\Lambda}
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Het resultaat is een simpele uitdrukking die ook begrijpelijk is.
+ De hoeveelheid water die door het drainagevlak stroomt is gelijk aan de
+ neerslag plus wat door de diepe stijghoogte wordt aangevoerd min wat door
+ de sloten wordt afgevoerd.
+ Interessant is dat wanneer 
+\begin_inset Formula $\phi=z_{dr}$
+\end_inset
+
+ en 
+\begin_inset Formula $\phi=h_{LR}$
+\end_inset
+
+, dat 
+\begin_inset Formula $q_{dr}$
+\end_inset
+
+ dan gelijk moet zijn aan 
+\begin_inset Formula $N$
+\end_inset
+
+.
+ Immers alleen dan is er geen enkele stroming.
+ En wanneer 
+\begin_inset Formula $h_{LR}=z_{dr}$
+\end_inset
+
+ de twee laatste termen samen gelijk zijn aan
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+q_{dr}=N+\left(\frac{\phi-z_{dr}}{c}\right),\,\,\,\,\,h_{LR}=z_{dr}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Ook dit is evident juist.
 \end_layout
 
 \begin_layout Section

@@ -303,6 +303,7 @@ def single_Layer_transient(solution_name, parcel_data=None, tdata=None):
         mu, S, k     = props['sy'], props['S2'], props['kh']
         cdrain, hdr  = props['c_drain'], props['AHN'] - props['d_drain']
         phi, D       = props['phi'], props['D1']
+        lam = k * D * c
 
         # Ditch restance to resistance used in MODFLOW's GHB and RIV packages
         w_ghb = wi
@@ -317,22 +318,7 @@ def single_Layer_transient(solution_name, parcel_data=None, tdata=None):
 
         # Initialize
         h0[0] = tdata['hLR'].iloc[0]
-
-        if solution_name == 'L1f':
-            phi = tdata['hLR'].iloc[0]
-        else:
-            phi = h0[0] + c * tdata['q_up'].iloc[0]
-
-        h1[0] = phi
-
-        # Mixed paramters, due to drainage
-        w_    = wo if h0[0] <= tdata['hLR'].iloc[0] else wi
-        cdr    = np.inf if h0[0] < hdr else cdrain
-        ch     = c  / (1 + c / cdr)    # c_hat (see theory)
-        Th     = mu * ch
-        phih   = (phi + (c / cdr) * hdr) / (1 + c / cdr)
-        lamh   = np.sqrt(k * D * ch)
-        Lambh  = 1 / ((b / lamh) / np.tanh(b / lamh) + (w_ / D) * (ch / b))
+        h1[0] = phi if solution_name == 'L1f' else h0[0] + c * tdata['q_up'].iloc[0]
 
         # Fluxes computed on the go
         qs0 = np.zeros(len(tdata))
@@ -353,67 +339,80 @@ def single_Layer_transient(solution_name, parcel_data=None, tdata=None):
                                 tdata[ 'phi'].values, # head in lower aquifer (used if solution is 'L1f')
                                 )):
             substep_max = 0
-            # Current recharge surplus
-            N = prec - ev24
 
-            # Current heads. Phi: either computed or given dependin on solution 'L1f' or 'L1q'
-            if solution_name == 'L1q':
-                    phi = h0[it] + c * q_up # as phi end of prev. time step
+            # Initialize before each time step
+            N = prec - ev24 # Current net recharge
 
-            # Flow contubtions from substeps
+            # Restet flow accumulators before each time step
             dqv0, dqdr, dqb0 = 0., 0., 0.
+
+            # starting heads equals the head at end of previous time step
+            hstrt = h0[it]
+            if solution_name == 'L1q':
+                    phi = hstrt + c * q_up
+
+            w_ = wi if hstrt > hlr else wo
+            Lamb  = 1 / ((b / lam) / np.tanh(b / lam) + (w_ / D) * (c / b))
+            rising = (phi - hdr) + N * c - (N * c - (hlr - phi)) * Lamb
+            cdr = np.inf if hstrt <= hdr  else cdrain
+            ch     = c  / (1 + c / cdr)    # c_hat (see theory)
+            Th     = mu * ch
+            phih   = (phi + (c / cdr) * hdr) / (1 + c / cdr)
+            lamh   = np.sqrt(k * D * ch)
+            Lambh  = 1 / ((b / lamh) / np.tanh(b / lamh) + (w_ / D) * (ch / b))
+            B      = N * ch - (N * ch - (hlr - phih)) * Lambh
 
             # For solution 'L1q' we compute the head at end of time step twice
             # because phi won't be otherwise correct.
             # For solution 'L1f', no iterations are necessasry.
+            NITER = 1
             for iter in range(NITER): # iterate for phi, only when 'L1q', phi not given.
                 substep_counter = 0
 
                 # Initialize conainer for iteation within time step
                 hstrt = h0[it] # Init with walue of previous time
+                # Current heads. Phi: either computed or given dependin on solution 'L1f' or 'L1q'
+                if it == 900:
+                    print('it = {}'.format(it))
 
-                if it == 927:
-                        must_stop = False
 
                 # We work ourselves through the timestep in substeps if the head
                 # crosses the hdrain and the cdrain switches from and to np.inf.
                 t = t1 - dt # current time initiazed to start of time step.
                 while t < t1: # while not done
-                    substep_counter += 1
-
-                    # There should never be more than a few steps
                     # Check that nothign goes astray.
-                    if substep_counter == 10:
+                    substep_counter += 1
+                    if substep_counter == 10: #xpecte at most 1 substep
                         print("Warning iteration {:it} no convergence!".format(it))
                         break
 
-                    # w_ditch depends on infiltration or exfiltration at current t.
+                    # hstrt has been updated at this point !! So update phi
+
                     w_    = wo if hstrt <= hlr else wi
 
-                    # Drains active, if so, use cdrain else inf.
-                    if   hstrt > hdr + htol:
-                        cdr = cdrain
-                    elif hstrt < hdr - htol:
+
+                    cdr_old = cdr
+                    if hstrt < hdr - htol:
                         cdr = np.inf
+                    elif hstrt > hdr + htol:
+                        cdr = cdrain
                     else:
-                        phih   = (phi + (c / cdr) * hdr) / (1 + c / cdr)
-                        Th     = mu * ch
-                        vh = ((phih - hstrt) + (N * ch - (N * ch - (hlr - phih)) * Lambh)) / Th
-                        rising = vh > 0
+                        rising = (phi - hstrt) + N * c - (N * c - (hlr - phi)) * Lamb
                         if rising:
                             cdr = cdrain
                             hstrt += 2 * htol
                         else:
                             cdr = np.inf
                             hstrt -= 2 * htol
+                    if cdr != cdr_old: # then update
+                        ch     = c  / (1 + c / cdr)    # c_hat (see theory)
+                        Th     = mu * ch
+                        lamh   = np.sqrt(k * D * ch)
+                        Lambh  = 1 / ((b / lamh) / np.tanh(b / lamh) + (w_ / D) * (ch / b))
+                        phih   = (phi + (c / cdr) * hdr) / (1 + c / cdr)
+                        B      = N * ch - (N * ch - (hlr - phih)) * Lambh
+                    rising = ((phih - hstrt) + B) > 0
 
-                    # Mixed paramters, due to drainage
-                    ch     = c  / (1 + c / cdr)    # c_hat (see theory)
-                    Th     = mu * ch
-                    phih   = (phi + (c / cdr) * hdr) / (1 + c / cdr)
-                    lamh   = np.sqrt(k * D * ch)
-                    Lambh  = 1 / ((b / lamh) / np.tanh(b / lamh) + (w_ / D) * (ch / b))
-                    B      = N * ch - Lambh * (N * ch - (hlr - phih))
                     r      = (hstrt - phih - B) / (hdr - phih - B)
 
                     # See if head crosses hdrain during current timestep
@@ -445,7 +444,6 @@ def single_Layer_transient(solution_name, parcel_data=None, tdata=None):
                     hstrt = hend
                     t += dtau
                     # END for t < t1
-                # Update for next iter
                 substep_max = max(substep_counter, substep_max)
                 if iter == NITER:
                     qv0[it] += dqv0
