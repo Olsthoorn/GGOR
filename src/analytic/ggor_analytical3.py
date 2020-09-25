@@ -280,6 +280,20 @@ def single_Layer_transient(solution_name=None, parcel_data=None, tdata=None):
         h0mean  = phi + (ht - phi) * f + B * (1 - f)
         return t + dtau, hend, dhdt, h0mean
 
+    def get_runoff(tau=None, N=None, hlr=None, h0=None, phi=None, hdr=None, Lam=None, c=None, T=None):
+        """Return drainage required to lower the water table to hdr by end of time step."""
+        e = 0. if tau == np.inf else np.exp(-tau / T)
+        qdr = N + ((hlr - phi) /c * Lam + (
+            (h0 - phi) / c * e  - (hdr - phi) / c) / (1 - e)) / (1 - Lam)
+        return qdr
+
+    # Only with given seepagre, do we iterate (once) to update phi to a beter average during the time step.
+    # However, even 1 (no) iterations would be fine if the time step is small relative to the system time T = mu c
+    # Hence one may set NITER to any positive int. This should push phi during the time step to its
+    # the real average value yielding the desired seepage q_up on avearge during the time step. Advice, stick
+    # to NITER=2, it's sufficient and takes least coputation time.
+    NITER = 1 if solution_name == 'L1f' else 2
+
     tdata = tdata.copy() # leave original intact
 
     check_cols(tdata, ['RH', 'EV24', 'summer'])
@@ -300,7 +314,7 @@ def single_Layer_transient(solution_name=None, parcel_data=None, tdata=None):
     h0 = np.zeros(nper + 1) # h0[i] end of prev. time step, start of current one
     h1 = np.zeros(nper + 1) # h1[i] end of prev. time step, start of current one
 
-    print('Sumulating {}'.format(solution_name))
+    print('Sumulating {}, NITER={}'.format(solution_name, NITER))
 
     for ip in range(len(parcel_data)):
 
@@ -320,7 +334,7 @@ def single_Layer_transient(solution_name=None, parcel_data=None, tdata=None):
         w_ghb = wi
         w_riv = np.inf if wi < wo + wtol else wi * wo / (wi - wo)
 
-        tdata['hLR'] = np.zeros(nper) * props['h_winter']
+        tdata['hLR'] = props['h_winter']
         tdata.loc[tdata['summer'], 'hLR'] = props['h_summer']
 
         # add column q_up to tdata, using data from props
@@ -344,37 +358,44 @@ def single_Layer_transient(solution_name=None, parcel_data=None, tdata=None):
             # Initialize before each time step
             N = prec - ev24 # Current net recharge
 
-            ht = h0[it]
-            if solution_name == 'L1q': phi = ht + c * q_up
+            if solution_name == 'L1q': phi = h0[it] + c * q_up
 
-            w_ = wi if ht > hlr else wo
+            w_ = wi if h0[it] > hlr else wo
             Lam  = 1 / ((b / lam) / np.tanh(b / lam) + (w_ / D) * (c / b))
 
             qroff = 0.
             B = get_B(N=N, qdr=qroff, phi=phi, hlr=hlr, c=c)
-            rising = (phi - ht + B) > 0
+            rising = (phi - h0[it] + B) > 0
 
-            NITER = 1 if solution_name == 'L1f' else 1
-
-            for iter in range(NITER):
+            for iter in range(NITER): # Use update phi in case q_up is specified (L1q instead of L1f)
+                ht = h0[it]
                 if iter == NITER - 1:
                     qdr = 0.
                     qv0 = 0.
-                    h1mean = 0.
+                    qb0 = 0.
+                    qghb = 0.
+                    qriv = 0.
 
+                # Because the head change during a time step is monotonous, due to constant
+                # boundary conditions during the time step, each time step may be
+                # split into at most two sub steps. The first being
+                # upto the moment that a rising water table intersects the drainage level
+                # within the time step, and the rest of the time step when it will
+                # be at the drainage level. Each time step in which there's no hit
+                # will be convered in a single step.
+                # Water tables above the drainage level cannot occur.
                 t = t1 - dt
                 while t < t1:
-                    hit = ht > hdr - htol and ht < hdr + htol
-
-                    if hit and rising:
-                        qroff = N + (phi - hdr) / c / (1 - Lam) - (phi - hlr) / c * Lam / (1 - Lam)
+                    if ht > hdr - htol:
+                        if ht > hdr + htol: # ht > drainage level --> let drain during system time to drainge level
+                            qroff = get_runoff(tau=T, N=N, hlr=hlr, h0=ht, phi=phi, hdr=hdr, Lam=Lam, c=c, T=T)
+                        elif rising: # het at drainage level, if rising keep it there
+                            qroff = get_runoff(tau=np.inf, N=N, hlr=hlr, h0=ht, phi=phi, hdr=hdr, Lam=Lam, c=c, T=T)
                         B = get_B(N=N, qdr=qroff, phi=phi, hlr=hlr, c=c)
                         dtau = t1 - t
-                        qdr = qroff * dtau / dt # divide over entire time step
-                    else:
+                    else: # ht below drainage level, normal situations, check for hit of drainage level.
                         qroff = 0.
                         B = get_B(N=N, qdr=qroff, phi=phi, hlr=hlr, c=c)
-
                         r = (phi - ht + B) / (phi - hdr + B)
                         future_hit  = r > 1
                         if future_hit and rising: # we hit hdr in the future
@@ -389,29 +410,35 @@ def single_Layer_transient(solution_name=None, parcel_data=None, tdata=None):
                     t, ht, dhdti, h0mean = move_on(
                                 t=t, dtau=dtau, ht=ht, T=T, phi=phi, B=B)
 
-                    if iter == NITER:
-                        qv0 += (h1mean - h0mean) / c    * dtau / dt
-                        qdr += qroff  * dtau / dt
-                        h1mean += phi * dtau / dt
+                    if iter == NITER - 1:
+                        qv0 += (phi - h0mean) / c * dtau / dt              # exact for fixed phi:
+                        qdr += qroff  * dtau / dt                          # exact for drainage
+                        qb0 += (N - qdr - (hlr - phi) / c) * Lam * dtau/dt #exact for fixed phi
+
+                        # Split ditch flow over ghb en riv (riv only works when outflow to ditch)
+                        qghb += -qb0 if qb0 < 0. else  -qb0 * w_riv / (w_riv + w_ghb)
+                        qriv +=   0. if qb0 < 0. else  -qb0 * w_ghb / (w_riv + w_ghb)
 
                 # Update phi for the next iterataion
                 if solution_name == 'L1q':
-                    phi = h0mean + c * q_up
+                    phi = 0.5 * (h0[it] + ht) + c * q_up
             # results below divided by 2 due to iteration iter
             h0[it + 1] = ht
             h1[it + 1] = phi
-
+            # Getting the water budget terms in the way used by MODFLOW.
+            # Modflow's water budget parts summed always yiedsl zero for each cell.
             cbc['RCH'][0, ip, it] =   prec
             cbc['EVT'][0, ip, it] =  -ev24
-            cbc['STO'][0, ip, it] = mu * (h0[it + 1] - h0[it])
-            cbc['STO'][0, ip, it] = S  * (h1[it + 1] - h1[it])
-            cbc['WEL'][1, ip, it] = q_up if solution_name == 'L1q' else 0.
-            cbc['DRN'][0, ip ,it] = qdr
-            cbc['FLF'][1, ip, it] = -cbc['WEL'][1, ip, it] - cbc['STO'][1, ip, it]
-            cbc['FLF'][0, ip, it] = -cbc['FLF'][0, ip, it]
-            qb0 =  N + cbc['FLF'][0, ip, it] - cbc['DRN'][0, ip, it] - cbc['STO'][0, ip, it]
-            cbc['GHB'][0, ip, it] = -qb0 if hlr > ht else -qb0 * w_riv / (w_riv + w_ghb)
-            cbc['RIV'][0, ip, it] =   0. if hlr > ht else -qb0 * w_ghb / (w_riv + w_ghb)
+            cbc['STO'][0, ip, it] =  -mu * (h0[it + 1] - h0[it]) / dt
+            cbc['STO'][1, ip, it] =  -S  * (h1[it + 1] - h1[it]) / dt
+            cbc['DRN'][0, ip ,it] =  -qdr
+            cbc['FLF'][0, ip, it] =  +qv0
+            cbc['FLF'][1, ip, it] =  -qv0
+            cbc['WEL'][1, ip, it] =   qv0 - cbc['STO'][1, ip, it]
+
+            # To the dtiches:
+            cbc['GHB'][0, ip, it] = qghb
+            cbc['RIV'][0, ip, it] = qriv
             if it % 100 == 0: print('.', end='')
             # END it
         # Gather results and store in tdata columns
@@ -1424,8 +1451,8 @@ if __name__ == '__main__':
     if test:
         # Change the tdata such that we have a smooth input
         tdata = gt.gen_testdata(tdata=tdata,
-                              RH  =(270, 0.0, 0.000, 0.000, 0.002),
-                              EV24=(180, 0.0, 0.000, 0.000),
+                              RH  =(270, 0.0, 0.002, 0.000),
+                              EV24=(360, 0.0, 0.002, 0.000),
                               )
 
         parcel_data = gt.get_test_parcels(os.path.join(
@@ -1444,7 +1471,7 @@ if __name__ == '__main__':
 
     parcel_data = parcel_data.iloc[:5]
 
-    if False: # analytic with given head in regional aquifer
+    if True: # analytic with given head in regional aquifer
         l1f = L1f(parcel_data=parcel_data)
         l1f.sim(tdata=tdata)
         l1f.plot_heads()
@@ -1471,3 +1498,25 @@ if __name__ == '__main__':
         False("?? Nothing to do!!")
 
     print('---- All done ! ----')
+#%% Plot for verification
+try:
+    obj = l1f
+except:
+    obj = l1q
+
+d = obj.CBC.data
+hds = obj.HDS.data
+ax = newfig2(['test HDS', 'test CBC'], 'tijd', ['m', 'm/d'])
+ax[0].plot(obj.tdata.index, hds[0, 0, :], label='h[L0, ip0]')
+ax[0].plot(obj.tdata.index, hds[1, 0, :], label='h[L1, ip0]')
+
+ax[0].legend()
+ax[1].plot(obj.tdata.index, d['STO'][0, 0, :], color='cyan', label='STO[L0, ip0]')
+ax[1].plot(obj.tdata.index, d['RCH'][0, 0, :], color='green',  label='RCH[L0, ip0]')
+ax[1].plot(obj.tdata.index, d['EVT'][0, 0, :], color='yellow',  label='EVT[L0, ip0]')
+ax[1].plot(obj.tdata.index, d['FLF'][0, 0, :], color='darkgray', label='FLF[L0, ip0]')
+ax[1].plot(obj.tdata.index, d['DRN'][0, 0, :], color='lightgray', label='DRN[L0, ip0]')
+ax[1].plot(obj.tdata.index, d['GHB'][0, 0, :], color='purple', label='GHB[L0, ip0]')
+ax[1].plot(obj.tdata.index, d['RIV'][0, 0, :], color='magenta', label='RIV[L0, ip0]')
+ax[1].legend()
+plt.show()

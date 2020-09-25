@@ -1602,6 +1602,49 @@ f & =\frac{1}{\Delta t}\intop_{t_{0}}^{t_{0}+\Delta t}e^{-\frac{t-t_{0}}{T}}dt\\
 \end_layout
 
 \begin_layout Standard
+Voor gemiddelde van termen die dynamisch variëren volgens 
+\begin_inset Formula $1-e^{-\frac{t-t_{0}}{\Delta t}}$
+\end_inset
+
+ kan de factor 
+\begin_inset Formula $f_{1}$
+\end_inset
+
+ worden afgeleid
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+f_{1} & =\frac{1}{\Delta t}\intop_{t_{0}}^{t_{0}+\Delta t}\left(1-e^{-\frac{t-t_{0}}{T}}\right)dt\\
+ & =1-\frac{1}{\Delta t}\intop_{t_{0}}^{t_{0}+\Delta t}e^{-\frac{t-tt_{0}}{T}dt}\\
+ & =1-\left(1-e^{-\frac{\Delta t}{T}}\right)\frac{T}{\Delta t}\\
+ & =1-f
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+f_{1} & =\frac{1}{\Delta t}\intop_{t_{0}}^{t_{0}+\Delta t}\left(1-e^{-\frac{t-t_{0}}{T}}\right)dt\\
+ & =1-\frac{1}{\Delta t}\intop_{t_{0}}^{t_{0}+\Delta t}e^{-\frac{t-tt_{0}}{T}}dt\\
+ & =1-\frac{T}{\Delta t}\intop_{0}^{\frac{\Delta t}{T}}e^{-y}dy\\
+ & =1+\left(\frac{T}{\Delta t}e^{-y}\right)_{0}^{\frac{\Delta t}{T}}\\
+ & =1+\left(e^{-\frac{\Delta t}{T}}-1\right)\frac{T}{\Delta t}\\
+ & =1-\left(1-e^{-\frac{\Delta t}{T}}\right)\frac{T}{\Delta t}\\
+ & =1-f
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
 \begin_inset Float figure
 wide false
 sideways false
@@ -3500,8 +3543,18 @@ De differentiaalvergelijking zonder drainage is als volgt
 \begin_layout Standard
 \begin_inset Formula 
 \begin{align*}
-\frac{d\overline{h}}{dt} & =\frac{1}{T}\left\{ \phi-\overline{h}_{0}+Nc-\left[Nc-\left(h_{LR}-\phi\right)\right]\Lambda\right\} e^{-\frac{t-t_{0}}{T}}\\
- & =\frac{1}{T}\left\{ \phi-\overline{h}_{0}+B\right\} e^{-\frac{t-t_{0}}{T}}
+\overline{h}-\phi & =\left(\overline{h}_{0}-\phi\right)e^{-\frac{t-t_{0}}{T}}+B\left(1-e^{-\frac{t-t_{0}}{T}}\right)
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\frac{d\overline{h}}{dt} & =\frac{1}{T}\left\{ \phi-\overline{h}_{0}+B\right\} e^{-\frac{t-t_{0}}{T}}
 \end{align*}
 
 \end_inset
@@ -3625,7 +3678,7 @@ en met
 \begin_layout Standard
 \begin_inset Formula 
 \begin{align*}
-q_{dr}= & =\frac{1}{c}\left\{ \phi-\overline{h}_{0}+B\right\} e^{-\frac{t-t_{0}}{T}},\,t>t_{0}+\Delta t
+q_{dr} & =\frac{1}{c}\left\{ \phi-\overline{h}_{0}+B\right\} e^{-\frac{t-t_{0}}{T}},\,t>t_{0}+\Delta t
 \end{align*}
 
 \end_inset
@@ -3777,8 +3830,137 @@ q_{dr}=N+\left(\frac{\phi-z_{dr}}{c}\right),\,\,\,\,\,h_{LR}=z_{dr}
 Ook dit is evident juist.
 \end_layout
 
+\begin_layout Standard
+We kunnen de betrekking voor 
+\begin_inset Formula $q_{dr}$
+\end_inset
+
+ ook afleiden door te eisen dat de afgeleiden van de stijghoogte naar de
+ tijd nul is op het moment dat 
+\begin_inset Formula $\overline{h}=z_{dr}$
+\end_inset
+
+ en het bij behorende moment 
+\begin_inset Formula $t=t_{0}+\tau$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+De oorspronkelijke vergelijking
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\overline{h}-\phi & =\left(\overline{h}_{0}-\phi\right)e^{-\frac{\tau}{T}}+\left\{ \left(N-q\right)c-\left[\left(N-q\right)c-\left(h_{LR}-\phi\right)\right]\Lambda\right\} \left(1-e^{-\frac{\tau}{T}}\right)
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+De afgeleide, die nul moet zijn op moment 
+\begin_inset Formula $\tau$
+\end_inset
+
+, door q af te trekken van het neerslagoverschot,
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\left(\frac{d\overline{h}}{dt}\right)=0 & =-\frac{1}{T}\left(\overline{h}_{0}-\phi\right)e^{-\frac{\tau}{T}}+\frac{1}{T}\left\{ \left(N-q\right)c-\left[\left(N-q\right)c-\left(h_{LR}-\phi\right)\right]\Lambda\right\} \left(e^{-\frac{\tau}{T}}\right)
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+De tijd (e-macht) valt uit de vergelijking.
+ Blijkbaar is deze 
+\begin_inset Formula $q$
+\end_inset
+
+ constant.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+0=-\left(\overline{h}_{0}-\phi\right)+\left(N-q\right)c\left(1-\Lambda\right)+\left(h_{LR}-\phi\right)\Lambda
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Dit levert precies dezelfde vergelijking op
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+q=N+\frac{\phi-\overline{h}_{0}}{c}\frac{1}{1-\Lambda}-\frac{\phi-h_{LR}}{c}\frac{\Lambda}{1-\Lambda}
+\]
+
+\end_inset
+
+
+\end_layout
+
 \begin_layout Section
-Sloten doorsnijden de scheiden deklaag
+Hoe bewijzen we dat de waterbalans goed is?
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\overline{h}-\phi & =\left(\overline{h}_{0}-\phi\right)e^{-\frac{t-t_{0}}{T}}+\left\{ \left(N-q_{dr}\right)c-\left[\left(N-q_{dr}\right)c-\left(h_{LR}-\phi\right)\right]\Lambda\right\} \left(1-e^{-\frac{t-t_{0}}{T}}\right)
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+d
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\mu\frac{d\overline{h}}{dt} & =\left\{ \left(\frac{\phi-\overline{h}_{0}}{c}\right)+N-q_{dr}-\left\{ \left(N-q_{dr}\right)-\left(\frac{h_{LR}-\phi}{c}\right)\right\} \Lambda\right\} e^{-\frac{t-t_{0}}{T}}\\
+storage & =leakage\_from\_below+recharge-drainage-flow\_to\_ditch
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+De gemiddelde waarden voor de termen rechts over de tijdstap 
+\begin_inset Formula $\Delta t$
+\end_inset
+
+ worden gevonden door vermenigvuldiging met de factor 
+\begin_inset Formula $f=\left(1-e^{-\frac{\Delta t}{T}}\right)/\left(\frac{\Delta t}{T}\right)$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Section
+Sloten doorsnijden de deklaag
 \end_layout
 
 \begin_layout Standard
