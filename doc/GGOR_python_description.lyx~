@@ -3917,6 +3917,242 @@ q=N+\frac{\phi-\overline{h}_{0}}{c}\frac{1}{1-\Lambda}-\frac{\phi-h_{LR}}{c}\fra
 \end_layout
 
 \begin_layout Section
+Wat als de head (evt.
+ aanvankelijk) boven het drainageniveau is?
+\end_layout
+
+\begin_layout Standard
+De benadering hiervoor, werkt de drainage niet wanneer het freatisch vlak
+ zich daarboven bevindt.
+ Immers alleen wanneer het freatisch vlak van onderen stijgend het drainagenivea
+u snijdt wordt het afgevangen.
+ Zonder extra maatregelen, blijft alles werken alsof er geen drainageniveau
+ is.
+ Dit verandert tot dat het freatisch vlak een keer tot onder het drainageniveau
+ raakt.
+ Daarna kan het er nooit meer bovenuit komen.
+\end_layout
+
+\begin_layout Standard
+Kunnen we de situatie met freatisch vlak boven het drainageniveau afvangen?
+\end_layout
+
+\begin_layout Standard
+We zouden in dat geval de onttrekking door de drainage kunnen berekenen
+ die het vlak op die niveau houdt.
+\end_layout
+
+\begin_layout Standard
+De algemene vergelijking voor het freatisch vlak is inmiddels goed bekend
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\overline{h}-\phi & =\left(\overline{h}_{0}-\phi\right)e^{-\frac{\tau}{T}}+\left\{ \left(N-q\right)c\left(1-\Lambda\right)+\left(h_{LR}-\phi\right)\Lambda\right\} \left(1-e^{-\frac{\tau}{T}}\right)
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Opnieuw dus de vraag welke 
+\begin_inset Formula $q_{dr}$
+\end_inset
+
+ dit vlak vasthoudt op 
+\begin_inset Formula $\overline{h}=z_{dr}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+z_{dr}-\phi & =\left(\overline{h}_{0}-\phi\right)e^{-\frac{\tau}{T}}+\left\{ \left(N-q\right)c\left(1-\Lambda\right)+\left(h_{LR}-\phi\right)\Lambda\right\} \left(1-e^{-\frac{\tau}{T}}\right)
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Maar er zal in een reële situatie altijd tijd nodig zijn om het niveau van
+ 
+\begin_inset Formula $z_{dr}$
+\end_inset
+
+ te bereiken wanneer 
+\begin_inset Formula $\overline{h}_{0}>z_{dr}$
+\end_inset
+
+ op 
+\begin_inset Formula $\tau=0$
+\end_inset
+
+.
+ Dus laten we iets voor deze tijd veronderstellen.
+ bijvoorbeeld na oneindig lange tijd, zodat de watertafel naar dit niveau
+ streeft.
+\end_layout
+
+\begin_layout Standard
+~
+\begin_inset Formula 
+\begin{align*}
+z_{dr}-\phi & =\left\{ \left(N-q\right)c\left(1-\Lambda\right)+\left(h_{LR}-\phi\right)\Lambda\right\} 
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+zodat
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+q & =N+\frac{h_{LR}-\phi}{c}\frac{\Lambda}{1-\Lambda}-\frac{z_{dr}-\phi}{c}\frac{1}{1-\Lambda}
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Het vereiste onttrekking (drainage) om het freatische vlak uiteindelijk
+ te laten zakken tot het drainageniveau is gelijk aan het neerslagoverschot
+ vermeerderd met een post die de infiltratie vanuit de sloot beschrijft
+ en verminderd met een post die de wegzijging naar de regionale aquifer
+ beschrijft.
+ Dit is logisch, maar het gaat heel lang duren.
+\end_layout
+
+\begin_layout Standard
+Een andere aanname of uitgangspunt kan zijn dat de modelleur wil dat het
+ drainage niveau nog binnen dezelfde tijdstap wordt bereikt.
+ Dit criterium kan dus altijd worden toegepast zodra 
+\begin_inset Formula $\overline{h}>z_{dr}$
+\end_inset
+
+.
+ Dus met 
+\begin_inset Formula $\tau=dt$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+z_{dr}-\phi & =\left(\overline{h}_{0}-\phi\right)e^{-\frac{dt}{T}}+\left\{ \left(N-q\right)c\left(1-\Lambda\right)+\left(h_{LR}-\phi\right)\Lambda\right\} \left(1-e^{-\frac{dt}{T}}\right)
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+q & =N+\frac{h_{LR}-\phi}{c}\frac{\Lambda}{1-\Lambda}+\left(\frac{\overline{h}_{0}-\phi}{c}\frac{e^{-\frac{dt}{T}}}{\left(1-e^{-\frac{dt}{T}}\right)}-\frac{z_{dr}-\phi}{c}\frac{1}{1-e^{-\frac{dt}{T}}}\right)\frac{1}{1-\Lambda}
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+In vergelijking met de 
+\begin_inset Formula $q$
+\end_inset
+
+ die nodig is om het freatisch vlak op peil te houden
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+q=N+\frac{h_{LR}-\phi}{c}\frac{\Lambda}{1-\Lambda}-\frac{z_{dr}-\phi}{c}\frac{1}{1-\Lambda}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+zien we dat het enige verschil is dat 
+\begin_inset Formula $dt=\infty$
+\end_inset
+
+ zodat de term met 
+\begin_inset Formula $e^{-\frac{dt}{T}}$
+\end_inset
+
+wegvalt.
+\end_layout
+
+\begin_layout Standard
+Deze uitdrukking lijkt uiteraard veel op de vorige, maar zit nu een bijdrage
+ van initiële grondwaterstand aan het begin van de tijdstap bij, terwijl
+ deze en de drainage gebonden zijn aan de tijd waarin de lek door het drainagevl
+ak mag duren.
+ Met deze uitdrukking kunne we er dus voor zorgen dat een eventueel initieel
+ freatisch vlak boven het drainageniveau nog net binnen de tijdstap naar
+ dit niveau terugzakt.
+\end_layout
+
+\begin_layout Standard
+Het resultaat is een piek in de waterbalansposten in de tijdstap dat het
+ freatisch vlak terugzakt naar het drainageniveau.
+ Dit verloop kan eenvoudig milder worden gemaakt door in plaats van de lengte
+ van de tijdstap de systeem tijd 
+\begin_inset Formula $T$
+\end_inset
+
+ te kiezen; het freatisch vlak zakt dan binnen de systeemtijd terug naar
+ het drainageniveau.
+ Dit grafieken geven dan een milder verloop met minder grote debietspieken
+ de overgangsperiode.
+ Voor het totaal van de simulatie maakt het niet uit omdat het drainageniveau
+ constant is.
+ Bovendien zal het slootniveau zo goed als altijd onder het drainageniveau
+ liggen.
+ Het drainageniveau is niet altijd de hoogte van aanwezige drainagebuizen,
+ het gaat om het waterniveau daarin.
+ Bij onderwaterdrainage zullen de buizen dieper liggen dan het drainageniveau,
+ bij normale, vrij afwaterende buisdrainage zijn beide praktisch gelijk.
+ Waar geen drainage aanwezig is, kan het maaiveld als drainageniveau worden
+ aangeduid.
+ De drainageafvoer is dan feitelijk identiek aan de surface runoff.
+ Bij greppels is het lastig om de situatie binnen dit analytische concept
+ te wringen.
+ Een compromis kan zijn om een equivalent uniform drainageniveau te kiezen,
+ maar dat is lastig.
+ Een alternatief kan zijn om met een drainageniveau te werken in samenhang
+ met drainageweerstand, waarbij de weerstand afneemt wanneer het freatisch
+ vlak verder boven het onderzijde van de greppels uitstijgt.
+ Ook dat is complex.
+ Een constante drainageweerstand kan een compromis zijn.
+ Maar beter is het omdat over te stappen op de numerieke benadering, waarbij
+ de greppels direct in de doorsnede kunnen worden ingebouwd als drainages
+ met een lokaal bij de greppels een lager drainageniveau en mogelijk een
+ wat grotere drainageweerstand.
+\end_layout
+
+\begin_layout Section
 Hoe bewijzen we dat de waterbalans goed is?
 \end_layout
 
@@ -3959,6 +4195,23 @@ De gemiddelde waarden voor de termen rechts over de tijdstap
 .
 \end_layout
 
+\begin_layout Standard
+Uitgeschreven gemiddelde waarden als water balans die op nul uitkomt overeenkoms
+tig de werkwijze van MODFLOW is dan
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\left\{ N+\left(\frac{\phi-\overline{h}_{0}}{c}\right)-q_{dr}-\left\{ \left(N-q_{dr}\right)-\left(\frac{h_{LR}-\phi}{c}\right)\right\} \Lambda\right\} f-\mu\frac{d\overline{h}}{d\Delta t} & =0\\
+\left\{ recharge+leakage\_from\_below-drainage-flow\_to\_ditch\right\} _{average\_over\_\Delta t}-storage\_over\_\Delta t & =0
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
 \begin_layout Section
 Sloten doorsnijden de deklaag
 \end_layout
@@ -3966,9 +4219,9 @@ Sloten doorsnijden de deklaag
 \begin_layout Standard
 Bij gegeven diepe uniforme stijghoogte maakt doorsnijding van de deklaag
  niets uit voor de grondwaterstand, eenvoudig omdat de uitwisseling tussen
- deklaag en regionale aquifer geheel wordt bepaald door het stijghoogte
- verschil tussen deklaag en regionale aquifer, en niet door de sloten die
- eventueel in de regionale aquifer snijden.
+ deklaag en regionale aquifer geheel wordt bepaald door het stijghoogteverschil
+ tussen deklaag en regionale aquifer, en niet door de sloten die eventueel
+ in de regionale aquifer snijden.
  Uiteraard is er bij doorsnijdende sloten een directe stroming tussen de
  ingesneden sloten en de regionale aquifer, maar deze term zit op geen enkele
  manier in de formules zolang de diepe stijghoogte gegeven is.
@@ -3977,37 +4230,13 @@ Bij gegeven diepe uniforme stijghoogte maakt doorsnijding van de deklaag
 \end_layout
 
 \begin_layout Standard
-Voor de situatie met gegeven kwel en sloten die tot in de regionale aquifer
- snijden is er wel een oplossing denkbaar, die deze in de regionale aquifer
- oplegde kwel verdeelt over de echte verticale kwel 
-\begin_inset Formula $\overline{q}_{v}$
-\end_inset
-
- door de scheidende laag en een kwel 
-\begin_inset Formula $\overline{q}_{b2}$
-\end_inset
-
- die direct naar de doorsnijdende sloten gaat.
- De verdeling moet dan gebeuren op basis van de verhouding van de weerstand
- tussen regionale aquifer en toplaag enerzijds en de sloten anderzijds.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{align*}
-\overline{q}_{v} & =\frac{\phi-\overline{h}}{c}\\
-\overline{q}_{b2} & =\frac{\phi-h_{LR}}{c_{s2}}
-\end{align*}
-
-\end_inset
-
-
+De waterbalans van de sloten in de regionale aquifer is dan eenvoudig:
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\overline{q}=\overline{q}_{v}+\overline{q}_{b2}
+q_{b1}=\frac{D_{2}}{w_{2}}\left(\phi-h_{LR}\right)
 \]
 
 \end_inset
@@ -4016,61 +4245,69 @@ Voor de situatie met gegeven kwel en sloten die tot in de regionale aquifer
 \end_layout
 
 \begin_layout Standard
-De totale stroom van de halve doorsnede naar de sloot kan als volgt worden
- geformuleerd
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{align*}
-\overline{q}_{b2} & =\left(\phi-h_{LR}\right)\frac{\Omega}{c_{s2}}\\
- & =\left(\phi-h_{LR}\right)\frac{D_{w}}{w_{2}}
-\end{align*}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-Hierin is 
-\begin_inset Formula $\Omega$
-\end_inset
-
- de halve slootomtrek voor zover deze omtrek in de regionale aquifer steekt.
- Een alternatieve formulering vat de weerstand op als die van een verticaal
- muurtje met weerstand 
+Dit omdat de stijghoogte in de regionale aquifer op de schaal van een perceel
+ als uniforme mag worden beschouwd.
+ Hier is 
 \begin_inset Formula $w_{2}$
 \end_inset
 
- ter hoogte van de totale dikte van de regionale aquifer.
- Dit laatste is zuiver conceptueel.
- Deling door 
+ de weerstand tussen de aquifer en de volledig ingesneden sloten.
+ Dus een van een verticaal muurtje met hoogte 
+\begin_inset Formula $D_{2}$
+\end_inset
+
+ de dikte van de regionale aquifer.
+ De weerstand kan altijd uitgedrukt worden in de weerstand die wordt gevormd
+ door de slootbodem en contractie van stroomlijnen.
+ Huisman (1972, p56) geeft een formule voor het extra stijghoogteverval
+ 
+\begin_inset Formula $\Delta s_{0}$
+\end_inset
+
+ door contractie van stroomlijnen naar een ontwateringsmiddel boven in het
+ watervoerende pakket waarvan de omtrek veel groter is dan de pakketdikte.
+ Voor 
+\begin_inset Formula $q_{0}$
+\end_inset
+
+ de aanstroming vanuit een zijde zoals in het geval van de GGOR, dus een
+ totale toestroming van 
+\begin_inset Formula $2q_{0}$
+\end_inset
+
+ wordt dit:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\Delta s_{0}=2\frac{q_{0}}{\pi k}\ln\left(\frac{D}{0.5\Omega}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Waarin 
+\begin_inset Formula $\Omega$
+\end_inset
+
+ de gehele natte omtrek van de sloot.
+ Dit is van belang, omdat we in de GGOR alleen afvoer door de halve omtrek
+ hebben afkomstig uit het halve perceel, dus over lengte 
 \begin_inset Formula $b$
 \end_inset
 
- geeft de doorsnede-gemiddelde afvoer naar de sloten onder de deklaag
+.
+ Willen we dit uitdrukken in termen als slootbodemweerstand dan geldt
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\overline{q}_{b2}=\left(\phi-h_{LR}\right)\frac{1}{b}\frac{D}{w_{2}}
-\]
-
-\end_inset
-
-zodat de doorsnede-equivalente slootweerstand 
-\begin_inset Formula $c_{b2}$
-\end_inset
-
- gelijk is aan
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-c_{b2}=w_{2}\frac{b}{D}=c_{b2}\frac{b}{\Omega}
+\Delta s_{0}=q_{0}\frac{c_{b}}{0.5\Omega}\rightarrow c_{b}=0.5\Omega\frac{\Delta s_{0}}{q_{0}}=0.5\Omega\frac{2}{\pi k}\ln\left(\frac{D}{0.5\Omega}\right)
 \]
 
 \end_inset
@@ -4079,14 +4316,9 @@ c_{b2}=w_{2}\frac{b}{D}=c_{b2}\frac{b}{\Omega}
 \end_layout
 
 \begin_layout Standard
-Aldus is de totale opwaartse lek vanuit de regionale aquifer naar doorsnijdende
- sloten en via de deklaag gelijk aan
-\end_layout
-
-\begin_layout Standard
 \begin_inset Formula 
 \[
-\overline{q}=\frac{\phi-\overline{h}}{c}+\frac{\phi-h_{LR}}{c_{b2}}
+\frac{w}{D}=\frac{c_{b}}{0.5\Omega}+\frac{2}{\pi k}\ln\left(\frac{D}{0.5\Omega}\right)
 \]
 
 \end_inset
@@ -4095,42 +4327,30 @@ Aldus is de totale opwaartse lek vanuit de regionale aquifer naar doorsnijdende
 \end_layout
 
 \begin_layout Standard
-Tijdens de simulatie met gegeven totale kwel 
-\begin_inset Formula $\overline{q}$
+Door anisotropie zou de doorsnede verschaalde moeten worden.
+ Voor een kleine ovale omtrek zoals de 
+\begin_inset Formula $\Omega$
 \end_inset
 
- wordt de diepe stijghoogte 
-\begin_inset Formula $\overline{\ensuremath{\phi}}$
+ maakt dat weinig uit, maar voor de pakketdikte wel.
+ We moeten daarom de pakketdikte 
+\begin_inset Formula $D$
 \end_inset
 
- steeds zodanig berekend dat de gewenste totale 
-\begin_inset Formula $\overline{q}$
+ schalen met 
+\begin_inset Formula $\sqrt{\frac{k_{h}}{k_{v}}}$
 \end_inset
 
- wordt verkregen.
- Aldus geldt dan
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{align*}
-\overline{q} & =\phi\frac{c+c_{b2}}{cc_{b2}}-\left(\frac{\overline{h}c_{b2}+h_{LR}c}{cc_{b2}}\right)
-\end{align*}
-
-\end_inset
-
-zodat de diepe stijghoogte die de gewenste totale lek vanuit de regionale
- aquifer, 
-\begin_inset Formula $\overline{q}$
-\end_inset
-
-, oplevert gelijk is aan
+ waardoor de weerstand door stroomlijncontractie toeneemt met toenemende
+ verticale anisotropie, in dit zin dat de verticale doorlatendheid kleiner
+ is dan de horizontale.
+ De equivalente slootweerstand wordt hiermee
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\phi=\frac{cc_{b2}}{c+c_{b2}}\left(\overline{q}+\frac{\overline{h}c_{b2}+h_{LR}c}{cc_{b2}}\right)
+\frac{w}{D}=\frac{c_{b}}{0.5\Omega}+\frac{2}{\pi k}\ln\left(\frac{D\sqrt{\frac{k_{h}}{k_{v}}}}{0.5\Omega}\right)
 \]
 
 \end_inset
@@ -4139,76 +4359,101 @@ zodat de diepe stijghoogte die de gewenste totale lek vanuit de regionale
 \end_layout
 
 \begin_layout Standard
-Tijdens de simulatie met gegeven kwel verandert de berekening van de diepe
- stijghoogte bij doorsnijdende sloten van
+Waarin 
+\begin_inset Formula $w/D$
+\end_inset
+
+ de weerstand is in de analytische oplossing, dus van het verticale muurtje
+ tussen de volledig ingesneden sloot en de aquifer met alleen horizontale
+ toestroming en waar dus geen plaats is voor anisotropie.
+ De anisotropie komt derhalve alleen voor on de logaritme.
+ Nogmaals in de formule is 
+\begin_inset Formula $\Omega$
+\end_inset
+
+ de natte omtrek van de hele sloot en 
+\begin_inset Formula $0.5\Omega$
+\end_inset
+
+ die van de halve sloot die in de GGOR van belang is.
+ In feite komt alleen die in de formule voor.
+\end_layout
+
+\begin_layout Standard
+Met deze uitdrukking kunnen de de stroming tussen de regionale aquifer en
+ de sloot gewoon uitrekenen wanneer het slootpeil en de stijghoogte in de
+ regionale aquifer onder het perceel bekend zijn.
+ In de GGOR modellering is dat altijd het geval: Bij simulatie met gegeven
+ diepe stijghoogte sowieso, maar ook bij simulatie met gegeven kwel.
+ Die rekenen we immers uit door in de regionale aquifer steeds de stijghoogte
+ aan te houden die de gewenste kwel geeft.
+ Kortom, de sloten die door de deklaag snijden kunnen we zonder meer in
+ de GGOR analyse meenemen.
+\end_layout
+
+\begin_layout Standard
+Wat doen we indien de totale kwel is gegeven met doorsneden deklaag.
+ We kunnen ons het gemakkelijk makend door steeds de stijghoogte in de regionale
+ aquifer te handhaven die tezamen met de afvoer via de ingesneden sloten
+ de totale kwel oplevert.
+ Zonder sloten is deze stijghoogte gelijk aan
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\phi=c\overline{q}+\overline{h}
+\phi=\overline{h}+cq
 \]
 
 \end_inset
 
-in de uitdrukking hiervoor.
+
 \end_layout
 
 \begin_layout Standard
-Ergo, de situatie met doorsnijdende sloten kan dus direct worden meegenomen
- in de simulatie bij gegeven totale kwel.
- Dit geschiedt iteratief op dezelfde wijze als zonder doorsnijdende sloten
- met een predictor-corrector aanpak bestaande uit een enkele iteratie voor
- elke tijdstap.
- De eerste iteratie rekent de tijdstap door met 
-\begin_inset Formula $\phi$
-\end_inset
-
- gelijk aan
+We hebben nu
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\phi_{_{1}}=c\overline{q}+\overline{h}_{t_{0}}\rightarrow\overset{1}{\overline{h}_{t_{1}}}
+\frac{\phi-\overline{h}}{c}+\frac{\phi-h_{LR}}{c_{b}}=q
 \]
 
 \end_inset
 
-wat 
-\begin_inset Formula $\overset{1}{\overline{h}_{t_{1}}}$
-\end_inset
 
-oplevert (met het cijfer boven 
-\begin_inset Formula $\overline{h}_{t_{1}}$
-\end_inset
+\end_layout
 
- het iteratienummer).
- De tweede iteratie wordt uitgevoerd met 
-\begin_inset Formula $\phi$
-\end_inset
-
- gelijk aan
+\begin_layout Standard
+dus
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\phi_{2}=c\overline{q}+\overline{h}_{t_{1}}\rightarrow\overset{2}{\overline{h}_{t_{1}}}
+\phi\left(\frac{1}{c}+\frac{1}{c_{b}}\right)-\left(\frac{\overline{h}}{c}+\frac{h_{LR}}{c_{b}}\right)=q
 \]
 
 \end_inset
 
-wat 
-\begin_inset Formula $\overset{2}{\overline{h}_{t_{1}}}$
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\phi=\left(\frac{c_{b}\overline{h}+ch_{LR}}{c_{b}+c}\right)+\frac{cc_{b}}{c+c_{b}}q
+\]
+
 \end_inset
 
- oplevert.
- Na afloop wordt 
-\begin_inset Formula $\overline{h}_{t_{1}}=0.5\left(\overset{1}{\overline{h}_{t_{1}}}+\overset{2}{\overline{h}_{t_{1}}}\right)$
-\end_inset
 
- genomen als startpunt aan het begin van de volgende tijdstap.
+\end_layout
+
+\begin_layout Standard
+Deze formule heeft dezelfde structuur als die zonder ingesneden sloten.
+ We hebben nu alleen een gewogen stijghoogte en een gewogen weerstand.
 \end_layout
 
 \begin_layout Section

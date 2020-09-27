@@ -4219,9 +4219,9 @@ Sloten doorsnijden de deklaag
 \begin_layout Standard
 Bij gegeven diepe uniforme stijghoogte maakt doorsnijding van de deklaag
  niets uit voor de grondwaterstand, eenvoudig omdat de uitwisseling tussen
- deklaag en regionale aquifer geheel wordt bepaald door het stijghoogte
- verschil tussen deklaag en regionale aquifer, en niet door de sloten die
- eventueel in de regionale aquifer snijden.
+ deklaag en regionale aquifer geheel wordt bepaald door het stijghoogteverschil
+ tussen deklaag en regionale aquifer, en niet door de sloten die eventueel
+ in de regionale aquifer snijden.
  Uiteraard is er bij doorsnijdende sloten een directe stroming tussen de
  ingesneden sloten en de regionale aquifer, maar deze term zit op geen enkele
  manier in de formules zolang de diepe stijghoogte gegeven is.
@@ -4230,37 +4230,13 @@ Bij gegeven diepe uniforme stijghoogte maakt doorsnijding van de deklaag
 \end_layout
 
 \begin_layout Standard
-Voor de situatie met gegeven kwel en sloten die tot in de regionale aquifer
- snijden is er wel een oplossing denkbaar, die deze in de regionale aquifer
- oplegde kwel verdeelt over de echte verticale kwel 
-\begin_inset Formula $\overline{q}_{v}$
-\end_inset
-
- door de scheidende laag en een kwel 
-\begin_inset Formula $\overline{q}_{b2}$
-\end_inset
-
- die direct naar de doorsnijdende sloten gaat.
- De verdeling moet dan gebeuren op basis van de verhouding van de weerstand
- tussen regionale aquifer en toplaag enerzijds en de sloten anderzijds.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{align*}
-\overline{q}_{v} & =\frac{\phi-\overline{h}}{c}\\
-\overline{q}_{b2} & =\frac{\phi-h_{LR}}{c_{s2}}
-\end{align*}
-
-\end_inset
-
-
+De waterbalans van de sloten in de regionale aquifer is dan eenvoudig:
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\overline{q}=\overline{q}_{v}+\overline{q}_{b2}
+q_{b1}=\frac{D_{2}}{w_{2}}\left(\phi-h_{LR}\right)
 \]
 
 \end_inset
@@ -4269,61 +4245,69 @@ Voor de situatie met gegeven kwel en sloten die tot in de regionale aquifer
 \end_layout
 
 \begin_layout Standard
-De totale stroom van de halve doorsnede naar de sloot kan als volgt worden
- geformuleerd
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{align*}
-\overline{q}_{b2} & =\left(\phi-h_{LR}\right)\frac{\Omega}{c_{s2}}\\
- & =\left(\phi-h_{LR}\right)\frac{D_{w}}{w_{2}}
-\end{align*}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-Hierin is 
-\begin_inset Formula $\Omega$
-\end_inset
-
- de halve slootomtrek voor zover deze omtrek in de regionale aquifer steekt.
- Een alternatieve formulering vat de weerstand op als die van een verticaal
- muurtje met weerstand 
+Dit omdat de stijghoogte in de regionale aquifer op de schaal van een perceel
+ als uniforme mag worden beschouwd.
+ Hier is 
 \begin_inset Formula $w_{2}$
 \end_inset
 
- ter hoogte van de totale dikte van de regionale aquifer.
- Dit laatste is zuiver conceptueel.
- Deling door 
+ de weerstand tussen de aquifer en de volledig ingesneden sloten.
+ Dus een van een verticaal muurtje met hoogte 
+\begin_inset Formula $D_{2}$
+\end_inset
+
+ de dikte van de regionale aquifer.
+ De weerstand kan altijd uitgedrukt worden in de weerstand die wordt gevormd
+ door de slootbodem en contractie van stroomlijnen.
+ Huisman (1972, p56) geeft een formule voor het extra stijghoogteverval
+ 
+\begin_inset Formula $\Delta s_{0}$
+\end_inset
+
+ door contractie van stroomlijnen naar een ontwateringsmiddel boven in het
+ watervoerende pakket waarvan de omtrek veel groter is dan de pakketdikte.
+ Voor 
+\begin_inset Formula $q_{0}$
+\end_inset
+
+ de aanstroming vanuit een zijde zoals in het geval van de GGOR, dus een
+ totale toestroming van 
+\begin_inset Formula $2q_{0}$
+\end_inset
+
+ wordt dit:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\Delta s_{0}=2\frac{q_{0}}{\pi k}\ln\left(\frac{D}{0.5\Omega}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Waarin 
+\begin_inset Formula $\Omega$
+\end_inset
+
+ de gehele natte omtrek van de sloot.
+ Dit is van belang, omdat we in de GGOR alleen afvoer door de halve omtrek
+ hebben afkomstig uit het halve perceel, dus over lengte 
 \begin_inset Formula $b$
 \end_inset
 
- geeft de doorsnede-gemiddelde afvoer naar de sloten onder de deklaag
+.
+ Willen we dit uitdrukken in termen als slootbodemweerstand dan geldt
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\overline{q}_{b2}=\left(\phi-h_{LR}\right)\frac{1}{b}\frac{D}{w_{2}}
-\]
-
-\end_inset
-
-zodat de doorsnede-equivalente slootweerstand 
-\begin_inset Formula $c_{b2}$
-\end_inset
-
- gelijk is aan
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-c_{b2}=w_{2}\frac{b}{D}=c_{b2}\frac{b}{\Omega}
+\Delta s_{0}=q_{0}\frac{c_{b}}{0.5\Omega}\rightarrow c_{b}=0.5\Omega\frac{\Delta s_{0}}{q_{0}}=0.5\Omega\frac{2}{\pi k}\ln\left(\frac{D}{0.5\Omega}\right)
 \]
 
 \end_inset
@@ -4332,14 +4316,9 @@ c_{b2}=w_{2}\frac{b}{D}=c_{b2}\frac{b}{\Omega}
 \end_layout
 
 \begin_layout Standard
-Aldus is de totale opwaartse lek vanuit de regionale aquifer naar doorsnijdende
- sloten en via de deklaag gelijk aan
-\end_layout
-
-\begin_layout Standard
 \begin_inset Formula 
 \[
-\overline{q}=\frac{\phi-\overline{h}}{c}+\frac{\phi-h_{LR}}{c_{b2}}
+\frac{w}{D}=\frac{c_{b}}{0.5\Omega}+\frac{2}{\pi k}\ln\left(\frac{D}{0.5\Omega}\right)
 \]
 
 \end_inset
@@ -4348,42 +4327,44 @@ Aldus is de totale opwaartse lek vanuit de regionale aquifer naar doorsnijdende
 \end_layout
 
 \begin_layout Standard
-Tijdens de simulatie met gegeven totale kwel 
-\begin_inset Formula $\overline{q}$
+Door anisotropie zou de doorsnede verschaalde moeten worden.
+ Voor een kleine ovale omtrek zoals de 
+\begin_inset Formula $\Omega$
 \end_inset
 
- wordt de diepe stijghoogte 
-\begin_inset Formula $\overline{\ensuremath{\phi}}$
+ maakt dat weinig uit, maar voor de pakketdikte wel.
+ We moeten daarom de pakketdikte 
+\begin_inset Formula $D$
 \end_inset
 
- steeds zodanig berekend dat de gewenste totale 
-\begin_inset Formula $\overline{q}$
+ schalen met 
+\begin_inset Formula $\sqrt{\frac{k_{h}}{k_{v}}}$
 \end_inset
 
- wordt verkregen.
- Aldus geldt dan
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{align*}
-\overline{q} & =\phi\frac{c+c_{b2}}{cc_{b2}}-\left(\frac{\overline{h}c_{b2}+h_{LR}c}{cc_{b2}}\right)
-\end{align*}
-
+ waardoor de weerstand door stroomlijncontractie toeneemt met toenemende
+ verticale anisotropie, in dit zin dat de verticale doorlatendheid kleiner
+ is dan de horizontale.
+ Ook de doorlatendheid zelf moet nu geschaald worden 
+\begin_inset Formula $k\rightarrow\sqrt{k_{h}k_{v}}$
 \end_inset
 
-zodat de diepe stijghoogte die de gewenste totale lek vanuit de regionale
- aquifer, 
-\begin_inset Formula $\overline{q}$
+.
+ De equivalente analytische slootweerstand 
+\begin_inset Formula $w$
 \end_inset
 
-, oplevert gelijk is aan
+ wordt hiermee direct kan worden berekend uit de gegeven slootweerstand,
+ slootomtrek en aquifereigenschappen, waarna deze 
+\begin_inset Formula $w$
+\end_inset
+
+ in de formules kan worden gebruikt
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\phi=\frac{cc_{b2}}{c+c_{b2}}\left(\overline{q}+\frac{\overline{h}c_{b2}+h_{LR}c}{cc_{b2}}\right)
+\frac{w}{D}=\frac{c_{b}}{0.5\Omega}+\frac{2}{\pi\sqrt{k_{h}k_{v}}}\ln\left(\frac{D\sqrt{\frac{k_{h}}{k_{v}}}}{0.5\Omega}\right)
 \]
 
 \end_inset
@@ -4392,76 +4373,185 @@ zodat de diepe stijghoogte die de gewenste totale lek vanuit de regionale
 \end_layout
 
 \begin_layout Standard
-Tijdens de simulatie met gegeven kwel verandert de berekening van de diepe
- stijghoogte bij doorsnijdende sloten van
+\begin_inset Formula 
+\[
+w=\frac{D}{0.5\Omega}c_{b}+\frac{2D}{\pi\sqrt{k_{h}k_{v}}}\ln\left(\frac{D\sqrt{\frac{k_{h}}{k_{v}}}}{0.5\Omega}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Waarin 
+\begin_inset Formula $w$
+\end_inset
+
+ de weerstand is in de analytische oplossing, dus van het verticale muurtje
+ tussen de volledig ingesneden sloot en de aquifer met alleen horizontale
+ toestroming en waar dus geen plaats is voor anisotropie.
+ De anisotropie komt derhalve alleen voor on de logaritme.
+ Nogmaals in de formule is 
+\begin_inset Formula $\Omega$
+\end_inset
+
+ de natte omtrek van de hele sloot en 
+\begin_inset Formula $0.5\Omega$
+\end_inset
+
+ die van de halve sloot die in de GGOR van belang is.
+ In feite komt alleen die in de formule voor.
+\end_layout
+
+\begin_layout Standard
+Met deze uitdrukking kunnen we de gegeven reële situatie met slootbodemweerstand
+, natte slootomtrek boven in een aquifer met gegeven dikte en doorlatendheid
+ direct omrekenen naar de weerstand 
+\begin_inset Formula $w$
+\end_inset
+
+ in we tot nu toe in de analytische oplossingen hebben gebruikt.
+\end_layout
+
+\begin_layout Standard
+Met deze uitdrukking kunnen we verder de stroming tussen de regionale aquifer
+ en de sloot gewoon uitrekenen wanneer het slootpeil en de stijghoogte in
+ de regionale aquifer onder het perceel bekend zijn.
+ In de GGOR modellering is dat altijd het geval: Bij simulatie met gegeven
+ diepe stijghoogte sowieso, maar ook bij simulatie met gegeven kwel.
+ Die rekenen we immers uit door in de regionale aquifer steeds de stijghoogte
+ aan te houden die de gewenste kwel geeft.
+ Kortom, de sloten die door de deklaag snijden kunnen we zonder meer in
+ de GGOR analyse meenemen.
+\end_layout
+
+\begin_layout Standard
+Wat doen we indien de totale kwel is gegeven met doorsneden deklaag.
+ We kunnen het ons gemakkelijk maken door steeds de stijghoogte in de regionale
+ aquifer te handhaven die tezamen met de afvoer via de ingesneden sloten
+ de totale kwel oplevert.
+ De totale kwel vanuit de regionale aquifer is dan, per m doorsnede dus
+ in [m/d] is dan
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\phi=c\overline{q}+\overline{h}
+q_{up}=\frac{\phi-\overline{h}}{c}+\frac{\phi-h_{LR}}{wb/D}
 \]
 
 \end_inset
 
-in de uitdrukking hiervoor.
+
 \end_layout
 
 \begin_layout Standard
-Ergo, de situatie met doorsnijdende sloten kan dus direct worden meegenomen
- in de simulatie bij gegeven totale kwel.
- Dit geschiedt iteratief op dezelfde wijze als zonder doorsnijdende sloten
- met een predictor-corrector aanpak bestaande uit een enkele iteratie voor
- elke tijdstap.
- De eerste iteratie rekent de tijdstap door met 
-\begin_inset Formula $\phi$
-\end_inset
-
- gelijk aan
+De eerste term rechts is de lek via de scheidende laag; de tweede term is
+ de lek via de ingesneden sloten, immers
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\phi_{_{1}}=c\overline{q}+\overline{h}_{t_{0}}\rightarrow\overset{1}{\overline{h}_{t_{1}}}
+q_{b}b=\frac{\phi-h_{LR}}{w}D
 \]
 
 \end_inset
 
-wat 
-\begin_inset Formula $\overset{1}{\overline{h}_{t_{1}}}$
+
+\end_layout
+
+\begin_layout Standard
+Waarin 
+\begin_inset Formula $q$
 \end_inset
 
-oplevert (met het cijfer boven 
-\begin_inset Formula $\overline{h}_{t_{1}}$
+ de afvoer naar de sloot maar uitgedrukt in m/d dus per m doorsnede.
+ Dus is 
+\begin_inset Formula $bq_{b}$
 \end_inset
 
- het iteratienummer).
- De tweede iteratie wordt uitgevoerd met 
-\begin_inset Formula $\phi$
+ de totale afvoer van de halve doorsnede naar de sloot en het stijghoogteverval
+ bij de sloot is dan 
+\begin_inset Formula $wb/Dq_{b}$
 \end_inset
 
- gelijk aan
+
+\end_layout
+
+\begin_layout Standard
+We hebben nu, met 
+\begin_inset Formula $c_{b}=w\frac{b}{D}$
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\phi_{2}=c\overline{q}+\overline{h}_{t_{1}}\rightarrow\overset{2}{\overline{h}_{t_{1}}}
+\frac{\phi-\overline{h}}{c}+\frac{\phi-h_{LR}}{c_{b}}=q_{up}
 \]
 
 \end_inset
 
-wat 
-\begin_inset Formula $\overset{2}{\overline{h}_{t_{1}}}$
+
+\end_layout
+
+\begin_layout Standard
+dus
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\phi\left(\frac{1}{c}+\frac{1}{c_{b}}\right)-\left(\frac{\overline{h}}{c}+\frac{h_{LR}}{c_{b}}\right)=q_{up}
+\]
+
 \end_inset
 
- oplevert.
- Na afloop wordt 
-\begin_inset Formula $\overline{h}_{t_{1}}=0.5\left(\overset{1}{\overline{h}_{t_{1}}}+\overset{2}{\overline{h}_{t_{1}}}\right)$
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\phi=\left(\frac{c_{b}\overline{h}+ch_{LR}}{c_{b}+c}\right)+\frac{cc_{b}}{c+c_{b}}q_{up}
+\]
+
 \end_inset
 
- genomen als startpunt aan het begin van de volgende tijdstap.
+
+\end_layout
+
+\begin_layout Standard
+Omdat 
+\begin_inset Formula $c_{b}$
+\end_inset
+
+ meestal 
+\begin_inset Formula $\infty$
+\end_inset
+
+ zal zijn omdat de sloten niet tot in de regionale aquifer snijden, kan
+ de laatste uitdrukking beter als volgt worden geschreven
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\phi=\left(\frac{\overline{h}+\frac{c}{c_{b}}h_{LR}}{1+\frac{c}{c_{b}}}\right)+\frac{c}{1+\frac{c}{c_{b}}}q_{up},\,\,\,\,met\,\,\,\,c_{b}=wb/D
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Deze formule heeft dezelfde structuur als die zonder ingesneden sloten.
+ We hebben nu alleen een gewogen stijghoogte en een gewogen weerstand.
 \end_layout
 
 \begin_layout Section
