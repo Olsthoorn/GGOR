@@ -1471,19 +1471,19 @@ if __name__ == '__main__':
 
     parcel_data = parcel_data.iloc[:5]
 
-    if True: # analytic with given head in regional aquifer
+    if False: # analytic with given head in regional aquifer
         l1f = L1f(parcel_data=parcel_data)
         l1f.sim(tdata=tdata)
         l1f.plot_heads()
         l1f.plot_cbc()
         budget = l1f.CBC.get_budget()
-    elif True: # analytic with given seepage from regional aquifer
+    elif False: # analytic with given seepage from regional aquifer
         l1q = L1q(parcel_data=parcel_data)
         l1q.sim(tdata=tdata)
         l1q.plot_heads()
         l1q.plot_cbc()
         budget = l1q.CBC.get_budget()
-    elif False: # Analytic two layers, with ditches in both aquifers
+    elif True: # Analytic two layers, with ditches in both aquifers
         l2 = L2(parcel_data=parcel_data)
         l2.sim(tdata=tdata)
         l2.plot_heads()
@@ -1502,7 +1502,10 @@ if __name__ == '__main__':
 try:
     obj = l1f
 except:
-    obj = l1q
+    try:
+        obj = l1q
+    except:
+        obj = l2
 
 d = obj.CBC.data
 hds = obj.HDS.data
