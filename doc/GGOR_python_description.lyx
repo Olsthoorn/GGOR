@@ -2411,16 +2411,17 @@ noprefix "false"
 
 \end_inset
 
- gemiddeld gedurende de tijdstap geldt derhalve
+ gemiddeld gedurende de tijdstap geldt derhalve, met als indices de waterbalans
+ packages zoals MODFLOW die gebruikt
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \begin{align}
-q_{s} & =\mu\frac{\overline{h}_{t+\Delta t}-\overline{h}_{t}}{\Delta t}\,\,\,\,\,berging\_in\_deklaag\\
-q_{v} & =\frac{\phi-\overline{h}_{t}}{c}f\,\,\,\,\,kwel\_vanuit\_regionale\_aquifer\\
-q_{i} & =N\,\,\,\,\,neerslagoverschot\\
-q_{b} & =-\left(N+\frac{\phi-h_{LR}}{c}\right)\Lambda f\,\,\,\,\,afvoer\_naar\_sloot
+\overline{q}_{STO1} & =\mu\frac{\overline{h}_{t+\Delta t}-\overline{h}_{t}}{\Delta t}\,\,\,\,\,berging\_in\_deklaag\\
+\overline{q}_{FLF1} & =\frac{\phi-\overline{h}_{t}}{c}f\,\,\,\,\,kwel\_vanuit\_regionale\_aquifer\\
+\overline{q}_{RCH} & =N\,\,\,\,\,neerslagoverschot\\
+\overline{q}_{GHB1} & =-\left(N+\frac{\phi-h_{LR}}{c}\right)\Lambda f\,\,\,\,\,afvoer\_naar\_sloot
 \end{align}
 
 \end_inset
@@ -2650,21 +2651,22 @@ Waarin
 \end_inset
 
  is de sluitterm van de waterbalans, de aanvoer van elders.
- Uitgeschreven
+ Uitgeschreven, voor laag 2, met als indices de namen van de equivalente
+ MODFLOW-packages
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \begin{align*}
-\overline{q}_{s2} & =-S\frac{\phi_{t+\Delta t}-\phi_{t}}{\Delta t}\,\,\,\,\,berging\_in\_regionale\_aquifer\\
-\overline{q}_{v2} & =-q_{v1}=-\frac{\phi-\overline{h}_{0}}{c}f\,\,\,\,\,lek\_naar\_deklaag\\
-\overline{q}_{b2} & =-\frac{\phi-h_{LR}}{w_{2}b/D_{2}}f\,\,\,\,\,verlies\_naar\_ingesneden\_sloot\\
-\overline{q}_{w2} & =\overline{q}_{s2}+\overline{q}_{v1}+\overline{q}_{b2}\,\,\,\,\,sluitpost,\,regionale\_aanvoer
+\overline{q}_{STO2} & =-S\frac{\phi_{t+\Delta t}-\phi_{t}}{\Delta t}\,\,\,\,\,berging\_in\_regionale\_aquifer\\
+\overline{q}_{FLF2} & =-q_{v1}=-f\frac{\phi-\overline{h}_{0}}{c}\,\,\,\,\,lek\_naar\_deklaag\\
+\overline{q}_{GHB2} & =-\frac{f}{b}\frac{D}{w_{2}}\left(\phi-h_{LR}\right)\,\,\,\,\,verlies\_naar\_ingesneden\_sloot\\
+\overline{q}_{WEL2} & =\overline{q}_{s2}+\overline{q}_{v1}+\overline{q}_{b2}\,\,\,\,\,sluitpost,\,regionale\_aanvoer
 \end{align*}
 
 \end_inset
 
-n
+
 \end_layout
 
 \begin_layout Section

@@ -1535,6 +1535,433 @@ noprefix "false"
 
 \end_layout
 
+\begin_layout Subsubsection
+Vergelijk de analytische oplossing voor doorsnede zonder lek met die van
+ Kraaijenhoff en Van der Leur
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+h-h_{LR}=\frac{N\left(b^{2}-x^{2}\right)}{2kD}+\frac{w}{D}Nb
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\overline{h}-h_{LR}=\frac{N}{2kD}\frac{1}{b}\intop_{0}^{b}\left(b^{2}-x^{2}\right)dx+\frac{w}{D}Nb
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\overline{h}-h_{LR}=\frac{N}{2kD}\frac{1}{b}\left(b^{2}x-\frac{x^{3}}{3}\right)_{0}^{b}+\frac{w}{D}Nb
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\overline{h}-h_{LR}=\frac{N}{2kD}\frac{1}{b}\left(b^{3}-\frac{b^{3}}{3}\right)+\frac{w}{D}Nb
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\overline{h}-h_{LR}=\frac{Nb^{2}}{3kD}+\frac{w}{D}Nb
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\frac{kD}{b}\left(\overline{h}-h_{LR}\right)=N\left(\frac{b}{3}+kw\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+De waterbalans voor de stationaire situatie is dan neerslagoverschot 
+\begin_inset Formula $N$
+\end_inset
+
+ + afvoer naar de sloot is 0.
+ De tweede term hieronder is derhalve de afvoer naar de sloot.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+0=N-\frac{kD}{b}\frac{\left(\overline{h}-h_{LR}\right)}{\left(\frac{b}{3}+kw\right)}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Voor 
+\begin_inset Formula $w=0$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+0=N-3\frac{kD}{b^{2}}\left(\overline{h}-h_{LR}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Dynamisch
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\mu\frac{dh}{dt}=N-3\frac{kD}{b^{2}}\left(\overline{h}-h_{LR}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\left(\frac{b^{2}}{3kD}\mu\right)\frac{dh}{dt}=-\left(\overline{h}-\left(\frac{Nb^{2}}{3kD}+h_{LR}\right)\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+T\frac{d\left(h-\overline{h}_{\infty}\right)}{dt}=-\left(\overline{h}-\overline{h}_{\infty}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+with
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\overline{h}_{\infty}=\frac{Nb^{2}}{3kD}+h_{LR}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+and
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+T=\frac{b^{2}}{3kD}\mu
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Integratie
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\frac{d\left(h-\overline{h}_{\infty}\right)}{\overline{h}-\overline{h}_{\infty}}=-\frac{dt}{T}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\ln\left(\overline{h}-\overline{h}_{\infty}\right)=-\frac{t-t_{0}}{T}+C
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $C$
+\end_inset
+
+ volgt uit de beginvoorwaarde met 
+\begin_inset Formula $t=t_{0}\rightarrow\overline{h}=\overline{h}_{0}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\overline{h}-\overline{h}_{\infty}=\left(\overline{h}_{0}-\overline{h}_{\infty}\right)e^{-\frac{t-t_{0}}{T}}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\overline{h}=\overline{h}_{0}e^{-\frac{t-t_{0}}{T}}+\overline{h}_{\infty}\left(1-e^{-\frac{t-t_{0}}{T}}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\overline{h}=\overline{h}_{0}e^{-\frac{t-t_{0}}{T}}+\left(\frac{Nb^{2}}{3kD}+h_{LR}\right)\left(1-e^{-\frac{t-t_{0}}{T}}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\overline{h}=\overline{h}_{0}e^{-\frac{t-t_{0}}{T}}+\left(\frac{Nb^{2}}{3kD}\right)\left(1-e^{-\frac{t-t_{0}}{T}}\right)+h_{LR}-h_{LR}e^{-\frac{t-t_{0}}{T}}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\overline{h}-h_{LR}=\left(\overline{h}_{0}-h_{LR}\right)e^{-\frac{t-t_{0}}{T}}+\left(\frac{Nb^{2}}{3kD}\right)\left(1-e^{-\frac{t-t_{0}}{T}}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Dit is de som van twee processen.
+ Het eerste is uitzakking naar het slootpeil bij afwezigheid van neerslagoversch
+ot; het tweede is streven naar de stationaire evenwichtstoestand.
+\end_layout
+
+\begin_layout Standard
+Carslaw en Jaeger (1958) geven oplossing 7 on pagina 96 voor het verloop
+ in de tijd en plek van de oorspronkelijk uniforme temperatuur in een homogeen
+ materiaal tussen twee wanden die voor 
+\begin_inset Formula $t>0$
+\end_inset
+
+ op temperatuur 0 worden vastgehouden.
+ Deze vergelijking is equivalent aan Kraaijenhof en Van der Leur is gepubliceerd
+ in de vijftiger jaren.
+ Voor onze doorsnede wordt dit
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+h=\frac{4\overline{h}_{0}}{\pi}\sum_{i=1}^{\infty}\frac{\left(-1\right)^{i-1}}{2i-1}\cos\left(\left(2i-1\right)\frac{\pi}{2}\frac{x}{b}\right)\exp\left(-\left(2i-1\right)^{2}\frac{t}{T}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+met
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+T=\frac{\mu}{kD}\left(\frac{2b}{\pi}\right)^{2}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Dit geeft dynamisch het uitzakkingsverloop in de doorsnede na een plotselinge
+ peilverhoging van 
+\begin_inset Formula $\overline{h}_{0}$
+\end_inset
+
+ die als gevolg van neerslag kan worden geschreven als
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\overline{h}_{0}=\frac{P}{\mu}
+\]
+
+\end_inset
+
+ met 
+\begin_inset Formula $P$
+\end_inset
+
+ een plotseling hoeveelheid neerslag uitgedrukt in [L].
+ Echter 
+\begin_inset Formula $\overline{h}_{0}$
+\end_inset
+
+ kan natuurlijk evenzeer gevolg zijn van een plotselinge verandering van
+ het slootpeil 
+\begin_inset Formula $h_{LR}$
+\end_inset
+
+.
+ In dat geval moet 
+\begin_inset Formula $\overline{h}$
+\end_inset
+
+ gerekend worden ten opzichte van het slootpeil en geldt
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\overline{h}_{0}=-\Delta h_{LR}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+We kunnen de doorsnede-gemiddelde grondwaterstand van de laatste vergelijking
+ ook berekenen
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\overline{h}=\frac{4\overline{h}_{0}}{\pi}\sum_{i=1}^{\infty}\frac{\left(-1\right)^{i-1}}{2i-1}\left(\frac{1}{b}\intop_{0}^{b}\cos\left(\left(2i-1\right)\frac{\pi}{2}\frac{x}{b}\right)dx\right)\exp\left(-\left(2i-1\right)^{2}\frac{t}{T}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\frac{1}{b}\intop_{0}^{b}\cos\left(\left(2i-1\right)\frac{\pi}{2}\frac{x}{b}\right)dx
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\intop_{0}^{b}\cos\left(ax\right)dx & =\frac{1}{a}\intop_{0}^{ab}\cos\left(y\right)dy\\
+ & =\frac{1}{a}\left[\sin\left(y\right)\right]_{0}^{ab}\\
+ & =\frac{\sin\left(ab\right)}{a}
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\frac{1}{b}\intop_{0}^{b}\cos\left(\left(2i-1\right)\frac{\pi}{2}\frac{x}{b}\right)dx & =\frac{1}{b}\frac{\sin\left(\left(2i-1\right)\frac{\pi}{2}\frac{b}{b}\right)}{\left(2i-1\right)\frac{\pi}{2}\frac{1}{b}}\\
+ & =\frac{2}{\pi}\frac{\sin\left(\left(2i-1\right)\frac{\pi}{2}\right)}{\left(2i-1\right)}
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\overline{h}=\frac{8\overline{h}_{0}}{\pi^{2}}\sum_{i=1}^{\infty}\frac{\left(-1\right)^{i-1}}{\left(2i-1\right)^{2}}\sin\left(\left(2i-1\right)\frac{\pi}{2}\right)\exp\left(-\left(2i-1\right)^{2}\frac{t}{T}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
 \begin_layout Subsection
 De afvoer naar de sloot
 \end_layout
@@ -2411,16 +2838,17 @@ noprefix "false"
 
 \end_inset
 
- gemiddeld gedurende de tijdstap geldt derhalve
+ gemiddeld gedurende de tijdstap geldt derhalve, met als indices de waterbalans
+ packages zoals MODFLOW die gebruikt
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \begin{align}
-q_{s} & =\mu\frac{\overline{h}_{t+\Delta t}-\overline{h}_{t}}{\Delta t}\,\,\,\,\,berging\_in\_deklaag\\
-q_{v} & =\frac{\phi-\overline{h}_{t}}{c}f\,\,\,\,\,kwel\_vanuit\_regionale\_aquifer\\
-q_{i} & =N\,\,\,\,\,neerslagoverschot\\
-q_{b} & =-\left(N+\frac{\phi-h_{LR}}{c}\right)\Lambda f\,\,\,\,\,afvoer\_naar\_sloot
+\overline{q}_{STO1} & =\mu\frac{\overline{h}_{t+\Delta t}-\overline{h}_{t}}{\Delta t}\,\,\,\,\,berging\_in\_deklaag\\
+\overline{q}_{FLF1} & =\frac{\phi-\overline{h}_{t}}{c}f\,\,\,\,\,kwel\_vanuit\_regionale\_aquifer\\
+\overline{q}_{RCH} & =N\,\,\,\,\,neerslagoverschot\\
+\overline{q}_{GHB1} & =-\left(N+\frac{\phi-h_{LR}}{c}\right)\Lambda f\,\,\,\,\,afvoer\_naar\_sloot
 \end{align}
 
 \end_inset
@@ -2501,21 +2929,8 @@ Interpretatie van de doorgaande waterbalans.
  De laatste fase zonder neerslagoverschot lijkt weer op de beginfase.
  De grondwaterstand zakt tot het evenwicht onder het slootpeil maar boven
  de diepe stijghoogte.
- Dit leidt tot infiltratie vanuit de sloot  van de laag Above zero is inflow,
- below zero outflow.
- So we start with inflow from the ditch (GHB) bcause intially the water
- level goes below the ditch level.
- The storage is present but small and, therefore, hardly visible.
- This inflow flows downward into the underlying regional aquifer.
- The recharge starts with a positive value (green).For a short time storage
- is visible.
- This recharge is drained both to the regional aquifer and towards the ditch.
- Ect.
- In the one but last period, recharge is negative, causing the ditch to
- infiltrate water.
- In the large phase, without any recharge, there is a permanent inflow from
- the ditch that drains to the underlying regional aquifer due to the its
- low and maintained head.
+ Dit leidt tot infiltratie vanuit de sloot die gecompenseerd wordt door
+ weglekken van evenveel water naar de onderliggende regionale aquifer.
 \end_layout
 
 \begin_layout Subsection
@@ -2663,21 +3078,22 @@ Waarin
 \end_inset
 
  is de sluitterm van de waterbalans, de aanvoer van elders.
- Uitgeschreven
+ Uitgeschreven, voor laag 2, met als indices de namen van de equivalente
+ MODFLOW-packages
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \begin{align*}
-\overline{q}_{s2} & =-S\frac{\phi_{t+\Delta t}-\phi_{t}}{\Delta t}\,\,\,\,\,berging\_in\_regionale\_aquifer\\
-\overline{q}_{v2} & =-q_{v1}=-\frac{\phi-\overline{h}_{0}}{c}f\,\,\,\,\,lek\_naar\_deklaag\\
-\overline{q}_{b2} & =-\frac{\phi-h_{LR}}{w_{2}b/D_{2}}f\,\,\,\,\,verlies\_naar\_ingesneden\_sloot\\
-\overline{q}_{w2} & =\overline{q}_{s2}+\overline{q}_{v1}+\overline{q}_{b2}\,\,\,\,\,sluitpost,\,regionale\_aanvoer
+\overline{q}_{STO2} & =-S\frac{\phi_{t+\Delta t}-\phi_{t}}{\Delta t}\,\,\,\,\,berging\_in\_regionale\_aquifer\\
+\overline{q}_{FLF2} & =-q_{v1}=-f\frac{\phi-\overline{h}_{0}}{c}\,\,\,\,\,lek\_naar\_deklaag\\
+\overline{q}_{GHB2} & =-\frac{f}{b}\frac{D}{w_{2}}\left(\phi-h_{LR}\right)\,\,\,\,\,verlies\_naar\_ingesneden\_sloot\\
+\overline{q}_{WEL2} & =\overline{q}_{s2}+\overline{q}_{v1}+\overline{q}_{b2}\,\,\,\,\,sluitpost,\,regionale\_aanvoer
 \end{align*}
 
 \end_inset
 
-n
+
 \end_layout
 
 \begin_layout Section
