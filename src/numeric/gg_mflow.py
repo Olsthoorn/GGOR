@@ -21,7 +21,7 @@ from fdm import mfgrid
 import flopy
 import flopy.utils.binaryfile as bf
 from collections import OrderedDict
-
+import pdb
 NOT = np.logical_not
 AND = np.logical_and
 OR  = np.logical_or
@@ -47,8 +47,10 @@ colDict = {  'Bofek'     : 'bofek',
 defaults = {'d_drain': 0,  # [m] Tile drainage depth below local ground elevation, may be zero if no drains.
             'd_trench': 0.3, # [m] Trench depth in case present.
             'c_drain': 5., # [d] Tile drainage areal resistance. Also used for trenches.
-            'wi_ditch' : 2.,  # [d] Ditch resistance when flow is from ditch to ground.
-            'wo_ditch' : 1.,  # [d] Ditch resistance when flow is from ground to ditch.
+            'wi_ditch' : 2.,  # [d] Ditch resistance when flow is from ditch to ground. (analytical)
+            'wo_ditch' : 1.,  # [d] Ditch resistance when flow is from ground to ditch. (anlaytical)
+            'ci_ditch' : 2.,  # [d] Ditch bottom and side entry resistance (applied to Omega)
+            'co_ditch' : 1.,  # [d] Ditch bottom and side entry resistance (applied to Omega)
             'd_ditch' : 1.0, #[m] depth of ditch below ground surface
             'b_ditch' : 0.75, # [m] half the width of the ditch
             'D_CB' : 0.1, # [m] (dummy dikte) van basisveenlaag (CB=confining bed)
@@ -193,12 +195,12 @@ class Dir_struct:
         self.case_name = case
 
         #verify existance of required files
-        exe = self.exe_name
-        assert os.path.isfile(exe), "Missing executable '{}'.".format(exe)
-        dbf = os.path.join(self.case, self.case_name + '.dbf')
-        assert os.path.isfile(dbf), "Missing dbase file '{}.'".format(dbf)
-        assert os.path.isdir(self.meteo), "Missing meteodir '{}'.".format(self.meteo)
-        assert os.path.isdir(self.bofek), "Missing bofek folder '{}'.".format(self.bofek)
+        #exe = self.exe_name
+        #assert os.path.isfile(exe), "Missing executable '{}'.".format(exe)
+        #dbf = os.path.join(self.case, self.case_name + '.dbf')
+        #assert os.path.isfile(dbf), "Missing dbase file '{}.'".format(dbf)
+        #assert os.path.isdir(self.meteo), "Missing meteodir '{}'.".format(self.meteo)
+        #assert os.path.isdir(self.bofek), "Missing bofek folder '{}'.".format(self.bofek)
 
     # Directory structure
     @property
@@ -394,8 +396,11 @@ def set_spatial_arrays(parcel_data=None, gr=None):
 
     # VKCB for the resistance at bottom of cover layer
     # any resistance inside cover layer stems from kv
-    c = set3D(parcel_data['c_CB'], (gr.ncbd, *shape[1:]))
-    sparr['VKCB'] = gr.dz[gr.Icbd] / c
+    sparr['VKCB'] = np.zeros(gr.shape)
+    for ilay, (lcb, icb) in enumerate(zip(gr.LAYCBD, gr.ICBD)):
+        if lcb:
+            c = set3D(parcel_data['c_CB'], (gr.ncbd, *shape[1:]))
+            sparr['VKCB'][ilay] = gr.dz[icb] / c
 
     # IBOUND:
     # Limit width of rows to width of parcels by making cells beyond parcel width inactive
@@ -420,12 +425,17 @@ def set_stress_period_data(tdata=None):
     """
     spt = dict() # stress period time ddata
 
-    dt = np.diff(tdata.index - tdata.index[0]) / np.timedelta64(1, 'D')
+    if len(tdata) == 1:
+        dt = np.array([1.])
+    else:
+        dt = np.diff(tdata.index - tdata.index[0]) / np.timedelta64(1, 'D')
+        dt = np.hstack((dt[0], dt))
 
     spt['NPER']   = len(tdata)
-    spt['PERLEN'] = np.hstack((dt[0], dt)) # days for MODFLOW (assume dt day zero is t[1] - t[0])
+    spt['PERLEN'] = dt # days for MODFLOW (assume dt day zero is t[1] - t[0])
     spt['NSTP']   = np.ones(spt['NPER'], dtype=int)
-    spt['STEADY'] = np.zeros(spt['NPER'], dtype=bool) # all False
+    spt['STEADY'] = np.zeros(spt['NPER'], dtype=bool) if spt['NPER'] > 1\
+                    else np.ones(spt['NPER'], dtype=bool) # all False
 
     # We need only to specify one value for each stress period for the model as a whole?
     spt['RECH'] = {isp: tdata['RH'  ].iloc[isp] for isp in range(spt['NPER'])}
@@ -434,7 +444,8 @@ def set_stress_period_data(tdata=None):
     return spt
 
 
-def set_boundary_data(parcel_data=None, tdata=None, gr=None, IBOUND=None):
+def set_boundary_data(parcel_data=None, tdata=None, gr=None, IBOUND=None,
+                      use_w_not_c=False):
     """Create time-dependent boundary arrays for MODFLOW.
 
     Parameters
@@ -449,7 +460,8 @@ def set_boundary_data(parcel_data=None, tdata=None, gr=None, IBOUND=None):
                                   parcel_data=parcel_data,
                                   tdata=tdata,
                                   gr=gr,
-                                  IBOUND=IBOUND)
+                                  IBOUND=IBOUND,
+                                  use_w_not_c=use_w_not_c)
 
     spb['OC'] = {(isp, 0): ['save head', 'save budget', 'print budget']
                                              for isp in range(len(tdata))}
@@ -495,7 +507,8 @@ def get_drain_elev_with_trenches(parcel_data=None, gr=None):
     return elev
 
 
-def set_boundary(what=None, parcel_data=None, tdata=None, gr=None, IBOUND=None):
+def set_boundary(what=None, parcel_data=None, tdata=None, gr=None, IBOUND=None,
+                 use_w_not_c=False):
     """Return dictionary for boundary of given type.
 
     Parameters
@@ -511,6 +524,8 @@ def set_boundary(what=None, parcel_data=None, tdata=None, gr=None, IBOUND=None):
         time data
     gr: gridObject
         the modflow grid
+    use_w_not_c: bool
+        use the analytical ditch resisance w_ditch insead of the real c_ditch
     """
     boundary_dict = {}
     if what=='WEL':
@@ -570,9 +585,20 @@ def set_boundary(what=None, parcel_data=None, tdata=None, gr=None, IBOUND=None):
 
     elif what == 'GHB':
         # Ditch entry resistance, first column both layers.
-        wi    = parcel_data[['wi_ditch'   , 'wi_ditch'   ]].values.T
-        dy    = np.hstack((gr.dy[:, np.newaxis], gr.dy[:, np.newaxis])).T
-        cond  = parcel_data[['ditch_omega1','ditch_omega2']].values.T / wi * dy
+        pdata = parcel_data
+        if use_w_not_c:
+            wi = np.vstack((pdata['wi_ditch'], pdata['wi_ditch']))
+        else: # Use the real ditch resistance, dicth circumference
+            wi = np.vstack((pdata['ci_ditch'] * pdata['D1'] / pdata['ditch_omega1'],
+                            pdata['ci_ditch'] * pdata['D2'] / pdata['ditch_omega2']))
+            # extra resistance due to partial penetration of ditch
+            wi += np.vstack((pdata['wpp1'], pdata['wpp2']))
+
+        dy    = np.vstack((gr.dy, gr.dy))
+        cond  = np.vstack((pdata['D1'], pdata['D2'])) / wi * dy
+
+        cond[np.isnan(cond)] = 0. # This is where ditch_omega is zero
+
         I = gr.NOD[:, :, 0].ravel()[cond.ravel()>0]
         lrc  = np.array(gr.I2LRC(I.ravel()), dtype=int)
 
@@ -593,18 +619,35 @@ def set_boundary(what=None, parcel_data=None, tdata=None, gr=None, IBOUND=None):
             sum_prev = summer
 
     elif what == 'RIV':
-        # Ditch exit resistance (extra) first column both layers.
-        wi = parcel_data[['wi_ditch', 'wi_ditch']].values.T
-        wo = parcel_data[['wo_ditch', 'wo_ditch']].values.T
-        assert np.all(wi >= wo), "ditch entry resist. must be larger or equal to the ditch exit resistance!"
+        pdata=parcel_data
+        if use_w_not_c:
+            # Use analytic ditch resistance with layer thickness and no partial penetration
+            wi = np.vstack((pdata['wi_ditch'], pdata['wi_ditch'])) # Same value for both layers
+            wo = np.vstack((pdata['wo_ditch'], pdata['wo_ditch'])) # Same value for both layers
+            assert np.all(wi >= wo), "ditch entry resist. must be larger or equal to the ditch exit resistance!"
 
-        dw = wi - wo; eps=1e-10; dw[dw==0] = eps # prevent (handle division by zero)
-        w     = (wo * wi / dw)
-        dy    = np.hstack((gr.dy[:, np.newaxis], gr.dy[:, np.newaxis])).T
-        cond  = parcel_data[['ditch_omega1', 'ditch_omega2' ]].values.T / w * dy
-        # We only need the cell witht this condition:
+            dw = wi - wo; eps=1e-10; dw[dw==0] = eps # prevent (handle division by zero)
+            w     = (wo * wi / dw)
+        else: # Use real ditch resistance with ditch circumference
+            ci = np.vstack((pdata['ci_ditch'], pdata['ci_ditch'])) # Same value for both layers
+            co = np.vstack((pdata['co_ditch'], pdata['co_ditch'])) # Same value for both layers
+            assert np.all(ci >= co), "ditch entry resist. must be larger or equal to the ditch exit resistance!"
 
-        L = OR(cond > 0, dw <= eps)
+            dc = ci - co; eps=1e-10; dc[dc==0] = eps # prevent (handle division by zero)
+            c     = (co * ci / dc)
+
+            # To analytic resistance, using the ditch circumference
+            w = c * np.vstack((pdata['D1'] / pdata['ditch_omega1'],
+                               pdata['D2'] / pdata['ditch_omega2']))
+            # Add partial penetration to resistance
+            w += np.vstack((pdata['wpp1'], pdata['wpp2']))
+
+        dy    = np.vstack((gr.dy, gr.dy))
+        cond  = np.vstack((pdata['D1'], pdata['D2'])) / w * dy
+
+        cond[np.isnan(cond)] = 0. # When ditch_omega is zero
+
+        L = cond > 0
 
         I  = gr.NOD[:, :, 0][L].ravel()
         lrc  = np.asarray(gr.I2LRC(I), dtype=int)
@@ -666,6 +709,8 @@ class GGOR_data:
 
         self.compute_and_set_omega()
 
+        self.compute_and_set_wpp()
+
 
     def compute_and_set_omega(self):
         """Compute and set the half wetted ditch circumference in the two model layers.
@@ -676,6 +721,18 @@ class GGOR_data:
         calls normal function to allow using it with test data
         """
         compute_and_set_omega(self.data)
+
+
+    def compute_and_set_wpp(self):
+        """Compute and set the the extra resistance due to parital ditch penetration.
+
+        dwpp1 is the extra resistance in [d] for the top layer.
+        dwpp2 is the extra resistance in [d] for the regional aquifer
+
+        calls normal function to allow using it with test data.
+        """
+        compute_and_set_wpp(self.data)
+
 
     def compute_parcel_width(self, BMINMAX=(5., 10000.)):
         """Add computed parcel width to the to dataFrame self.data.
@@ -770,10 +827,11 @@ class GGOR_data:
         for dc in defcols: # only for the missing columns
             self.data[dc] = defaults[dc]
 
+
 def compute_and_set_omega(data=None):
     """Compute and set the half wetted ditch circumference in the two model layers.
 
-    ditch_omega1  [m] is half the width of the ditch plus its wetted sided.
+    ditch_omega1 [m] is half the width of the ditch plus its wetted sided.
     ditch_omega2 [m] ia the same for the regional aquifer.
 
     Fields are added in place.
@@ -795,6 +853,24 @@ def compute_and_set_omega(data=None):
     zaquif_top     = data['AHN'] - data['D1'] - data['D_CB']
     data['ditch_omega2'] = (data['b_ditch'] +
         (zaquif_top - zditch_bottom)) * (zaquif_top - zditch_bottom >= 0)
+
+def compute_and_set_wpp(data=None):
+    """Compute and return extra resistance due to contraction of flow lines.
+
+    See theory
+
+    Parameters
+    ----------
+    data: pd.DataFrame
+        parcel properties
+    """
+    data['wpp1'] = 2 /  (np.pi * np.sqrt(data['kh'] * data['kv'])) * np.log((
+        data['D1'] * np.sqrt(data['kh'] / data['kv']))/(0.5 * data['ditch_omega1']))
+
+    data['wpp2'] = 2 /  (np.pi * np.sqrt(data['kh2'] * data['kv2'])) * np.log((
+        data['D2'] * np.sqrt(data['kh2'] / data['kv2']))/(0.5 * data['ditch_omega2']))
+    data['wpp2'][np.isnan(data['wpp2'])] = np.inf
+    return
 
 
 
@@ -911,28 +987,29 @@ def get_parcel_average_hds(HDS=None, IBOUND=None, gr=None):
 class Heads_obj:
     """Heads object, to store and plot head data."""
 
-    def __init__(self, dirs, IBOUND=None, gr=None):
+    def __init__(self, dirs, tdata=None, IBOUND=None, gr=None):
         """Return Heads_obj.
 
         Paeameters
         ----------
         dirs: Dir_struct object
             GGOR directory structure
+        tdata: pd.DataFrame
+            time data
         IBOUND: ndarray of gr.shape
             Modflow's boundary array
         gr: fdm.mfgrid.Grid object
             holds the Modflow grid.
         """
+        self.case = os.path.basename(dirs.case)
         self.gr = gr
 
         #% Get the modflow-computed heads
-        hds_file = os.path.join(dirs.case_results, case +'.hds')
+        hds_file = os.path.join(dirs.case_results, self.case +'.hds')
         print("\nReading binary head file '{}' ...".format(hds_file))
         self.HDS = bf.HeadFile(hds_file)
-
-        self.avgHds = get_parcel_average_hds(self.HDS,
-                                             IBOUND=par['IBOUND'], gr=self.gr)
-        self.GXG    = GXG_object(tdata=meteo_data, avgHds=self.avgHds)
+        self.avgHds = get_parcel_average_hds(self.HDS, IBOUND, gr=self.gr)
+        self.GXG    = GXG_object(tdata=tdata, avgHds=self.avgHds)
 
 
     def plot(self, ax=None, tdata=None, parcel_data=None,
@@ -1228,7 +1305,9 @@ class Watbal_obj:
         """
         L = ['RCH', 'EVT', 'WEL', 'GHB', 'RIV', 'DRN', 'FLF', 'STO'] #Layer 0 labels
 
-        cbc_file = os.path.join(dirs.case_results, dirs.case_name +'.cbc')
+        self.case = os.path.basename(dirs.case)
+
+        cbc_file = os.path.join(dirs.case_results, self.case  +'.cbc')
         print("\nReading binary cbc file '{}'.".format(cbc_file))
         print("Scanning this file may take a minute or so ...")
 
@@ -1357,17 +1436,21 @@ class Watbal_obj:
         return ax
 
 
-def run_modflow(dirs=None, parcel_data=None, tdata=None, laycbd=(1, 0), dx=1.):
+def run_modflow(dirs=None, parcel_data=None, tdata=None, laycbd=(1, 0), dx=1.,
+                use_w_not_c=False):
         """Simulate GGOR using MODFLOW.
 
         Parameters
         ----------
-        dirs: Dir_struct object
+        dirs: DirStruct object
             directory structure object, containing home and case information
         parcel_data: pd.DataFrame
             parcel data (spacial)
         tdata: pd.DataFrame
             meteo data used to generate stress periods
+        use_w_not_c: bool
+            use analytical ditch resistance w_ditch instead of real c_ditch
+            c_ditch uses omega and effect of partial penetration of ditches
         """
         gr   = grid_from_parcel_data(
                     parcel_data=parcel_data, dx=dx, laycbd=laycbd)
@@ -1379,7 +1462,8 @@ def run_modflow(dirs=None, parcel_data=None, tdata=None, laycbd=(1, 0), dx=1.):
         bdd  = set_boundary_data(parcel_data=parcel_data,
                                      tdata=tdata,
                                      gr=gr,
-                                     IBOUND=par['IBOUND'])
+                                     IBOUND=par['IBOUND'],
+                                     use_w_not_c=use_w_not_c)
 
         # MODEL package parameter defaults for GGOR
         ipakcb = 53    # all cbc output to this unit
@@ -1394,6 +1478,8 @@ def run_modflow(dirs=None, parcel_data=None, tdata=None, laycbd=(1, 0), dx=1.):
         rclose = 0.01
 
         fm = flopy.modflow
+
+        case = os.path.basename(dirs.case)
 
         mf  = fm.Modflow(case, exe_name=dirs.exe_name, model_ws=dirs.case_results, verbose=True)
 
@@ -1483,6 +1569,7 @@ def get_test_parcels(path, sheet_name, test_id_col='Test'):
     parcel_data[test_id_col] = parcel_data[test_id_col].fillna(method='ffill')
 
     compute_and_set_omega(parcel_data)
+    compute_and_set_wpp(parcel_data)
 
     return parcel_data
 
@@ -1509,7 +1596,7 @@ def save_parcel_data_to_excel(dirs,
 
 if __name__ == "__main__":
 
-    test=True
+    test=False
 
     # Parameters to generate the model. Well use this as **kwargs
     GGOR_home = os.path.expanduser('~/GRWMODELS/python/GGOR') # home directory
@@ -1546,19 +1633,20 @@ if __name__ == "__main__":
 
         # Create a GGOR_modflow object and get the upgraded parcel_data from it
         parcel_data = GGOR_data(defaults=defaults, bofek=bofek, BMINMAX=(5, 250),
-                                   GGOR_home=GGOR_home, case=case).data
+                GGOR_home=GGOR_home, case=case).data
 
     # MODFLOW input arrays are int the returned dicts
-    par, spd, bdd, gr =  run_modflow(dirs=dirs, parcel_data=parcel_data, tdata=tdata)
+    par, spd, bdd, gr =  run_modflow(dirs=dirs, parcel_data=parcel_data, tdata=tdata,
+                                     use_w_not_c=True)
 
     #%% Get the modflow-computed heads and cell by cell flows
 
-    heads = Heads_obj(dirs, IBOUND=par['IBOUND'], gr=gr)
+    heads = Heads_obj(dirs, tdata=tdata, IBOUND=par['IBOUND'], gr=gr)
 
     watbal = Watbal_obj(dirs,
-                           IBOUND=par['IBOUND'],
-                           parcel_data=parcel_data,
                            tdata=tdata,
+                           parcel_data=parcel_data,
+                           IBOUND=par['IBOUND'],
                            gr=gr)
 
     #%% Open HDS file and plot heads (with GXG)
@@ -1581,13 +1669,13 @@ if __name__ == "__main__":
                                  selection=selection[0],
                                  sharey=True)
     else:
-        selection = [0]
+        selection = [0, 1, 2, 3]
+        titles=['Parcel averaged heads', 'Parcel averaged heads']
         ax = heads.plot(tdata=tdata,
                parcel_data=parcel_data,
                selection=selection,
                titles=titles,
                size_inches=(14, 8))
-
         ax = watbal.plot(parcel_data=parcel_data,
                          tdata=tdata,
                          selection=None,   # over all parcels

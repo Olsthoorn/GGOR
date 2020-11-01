@@ -2027,7 +2027,7 @@ tenslotte
 \end_layout
 
 \begin_layout Subsection
-Exacte middeling over de tijstap voor waterbalansposten en grondwaterstanden
+Exacte middeling over de tijdstap voor waterbalansposten en grondwaterstanden
 \end_layout
 
 \begin_layout Standard
@@ -3315,7 +3315,7 @@ met voor de systeemtijd
 
 \end_inset
 
-en we krijgen nu voor de spreidingslengte van deklaag 
+We krijgen nu voor de spreidingslengte van deklaag 
 \begin_inset Formula $\hat{\lambda}=\sqrt{kD\hat{c}}$
 \end_inset
 
@@ -3644,6 +3644,98 @@ De vergelijking met
  uiteindelijk allemaal nul worden.
 \end_layout
 
+\begin_layout Standard
+Figuur 
+\begin_inset CommandInset ref
+LatexCommand pageref
+reference "fig:Gedrag-van-de-grws-voor-en-na-passage-drainageniveau"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ geeft het verloop van de grondwaterstand voor en na het passeren van het
+ drainageniveau afhankelijk van de drainageweerstand.
+ De oranje punt geeft aan waar en wanneer de grondwaterstand het drainageniveau
+ bereikt.
+ Naarmate de drainageweerstand lager is, is de eindwaarde van de grondwaterstand
+ (gestippelde lijnen) lager en is het verloop aanvankelijk steiler.
+ De steilheid wordt bepaald door de systeemtijd 
+\begin_inset Formula $\hat{T}=\mu\hat{c}$
+\end_inset
+
+ die steeds kleiner wordt (het systeem wordt dan sneller) naarmate de de
+ drainageweerstand 
+\begin_inset Formula $c_{dr}$
+\end_inset
+
+ en dus de 
+\begin_inset Formula $\hat{c}$
+\end_inset
+
+ kleiner wordt.
+ De blauwe lijn is in feite voor 
+\begin_inset Formula $c_{dr}=\infty$
+\end_inset
+
+; deze lijn wordt vanaf de rode punt doorgezet in de groene lijn, die is
+ berekend met een drainageweerstand 
+\begin_inset Formula $c_{dr}=\infty$
+\end_inset
+
+ is.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename gedrag_h_na_passeren_drainageniveau.png
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:Gedrag-van-de-grws-voor-en-na-passage-drainageniveau"
+
+\end_inset
+
+Gedrag van de grondwaterstand voor en na passeren van het drainageniveau.
+ Het laatste afhankelijk van de de drainageweerstand 
+\begin_inset Formula $c_{dr}$
+\end_inset
+
+.
+ Zie titel en legenda voor de gebruikte parameters.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
 \begin_layout Subsection
 Drainageniveau
 \end_layout
@@ -3791,16 +3883,243 @@ Voor
 \begin_layout Standard
 \begin_inset Formula 
 \begin{align*}
-\left(\frac{d\overline{h}}{dt}\right)_{t=0} & =\frac{1}{\mu\hat{c}}\left\{ -\left(z_{dr}-z_{dr}\right)+\left[+\left(h_{LR}-z_{dr}\right)\widehat{\Lambda}\right]\right\} \\
- & =\frac{1}{\mu\hat{c}}\left(h_{LR}-z_{dr}\right)\widehat{\Lambda}\\
- & =\frac{1}{\mu\hat{c}}\frac{h_{LR}-z_{dr}}{\frac{b}{\hat{\lambda}}\mbox{ctanh}\frac{b}{\hat{\lambda}}+\frac{b}{\hat{c}}\frac{w}{D}}\\
- & =\frac{1}{\mu}\frac{h_{LR}-z_{dr}}{\hat{c}\frac{b}{\hat{\lambda}}\mbox{ctanh}\frac{b}{\hat{\lambda}}+b\frac{w}{D}}\\
- & =\frac{1}{\mu}\frac{D}{bw}\left(h_{LR}-z_{dr}\right)
+\left(\frac{d\overline{h}}{dt}\right)_{t=0} & =\frac{1}{\mu\hat{c}}\left\{ -\left(z_{dr}-z_{dr}\right)+N\left(1-\hat{\Lambda}\right)+\left(h_{LR}-z_{dr}\right)\widehat{\Lambda}\right\} \\
+ & =\frac{1}{\mu\hat{c}}\left(N\left(1-\hat{\Lambda}\right)+\left(h_{LR}-z_{dr}\right)\widehat{\Lambda}\right)
 \end{align*}
 
 \end_inset
 
 
+\end_layout
+
+\begin_layout Standard
+zowel 
+\begin_inset Formula $\hat{\Lambda}$
+\end_inset
+
+ als 
+\begin_inset Formula $\frac{\hat{\Lambda}}{\hat{c}}$
+\end_inset
+
+ gaan naar nu wanneer 
+\begin_inset Formula $\hat{c}\rightarrow0$
+\end_inset
+
+ wat het geval is wanneer 
+\begin_inset Formula $c_{dr}\rightarrow0$
+\end_inset
+
+.
+ Dit levert
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\left(\frac{d\overline{h}}{dt}\right)_{t=0} & =\frac{N}{\mu\hat{c}}=\infty
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Wel kunnen we kijken wat voor 
+\begin_inset Formula $c_{dr}\rightarrow0$
+\end_inset
+
+ gebeurt met 
+\begin_inset Formula $\overline{h}_{t}$
+\end_inset
+
+ wanneer 
+\begin_inset Formula $\overline{h}_{t}$
+\end_inset
+
+ op 
+\begin_inset Formula $t=0$
+\end_inset
+
+ gelijk is aan 
+\begin_inset Formula $z_{dr}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\overline{h}_{t}=\widehat{\phi}+\left(z_{dr}-\widehat{\phi}\right)e^{-\frac{t}{\widehat{T}}}+\left[N\widehat{c}\left(1-\widehat{\Lambda}\right)+\left(h_{LR}-\widehat{\phi}\right)\widehat{\Lambda}\right]\left(1-e^{-\frac{t}{\widehat{T}}}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+we hebben met 
+\begin_inset Formula $c_{dr}\rightarrow0$
+\end_inset
+
+ ook 
+\begin_inset Formula $\hat{c}\rightarrow0$
+\end_inset
+
+ zodat 
+\begin_inset Formula $\hat{T}=\mu\hat{c}\rightarrow0$
+\end_inset
+
+.
+ Hierdoor wordt de e-macht gelijk aan nul.
+ Bovendien wordt 
+\begin_inset Formula $\hat{\phi}=z_{dr}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+\lim_{c_{dr}\downarrow0}\left(\overline{h}_{t}-z_{dr}\right) & =N\widehat{c}\left(1-\widehat{\Lambda}\right)+\left(h_{LR}-z_{dr}\right)\widehat{\Lambda}\\
+ & =0
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Derhalve, hoewel 
+\begin_inset Formula $\left(\frac{dh}{dt}\right)_{c_{dr}\downarrow0}=\infty$
+\end_inset
+
+, geldt toch dat 
+\begin_inset Formula $\overline{h}_{c_{dr}=0,\,t\ge0}=0$
+\end_inset
+
+.
+ Dit klopt met de constatering dat naarmate de drainageconstante kleiner
+ is, de snelheid toeneemt waarmee de grondwaterstand naar zijn evenwicht
+ gaat nadat deze van onderen stijgend het drainageniveau heeft bereikt.
+ Echter tegelijk neemt het verschil in hoogte tussen de evenwichtsgrondwaterstan
+d en het drainageniveau af , tot nul zodra 
+\begin_inset Formula $c_{dr}=0$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Figuur 
+\begin_inset CommandInset ref
+LatexCommand pageref
+reference "fig:sinf-dhdt0"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ laat 
+\begin_inset Formula $s_{\infty}$
+\end_inset
+
+ zien als functie van 
+\begin_inset Formula $c_{dr}$
+\end_inset
+
+ samen met 
+\begin_inset Formula $\hat{\phi}.$
+\end_inset
+
+ Duidelijk is dat voor 
+\begin_inset Formula $c_{dr}\rightarrow0$
+\end_inset
+
+ 
+\begin_inset Formula $s_{\infty}\rightarrow0$
+\end_inset
+
+ en 
+\begin_inset Formula $\hat{\phi}\rightarrow z_{dr}$
+\end_inset
+
+ zodat 
+\begin_inset Formula $\overline{h}\rightarrow z_{dr}$
+\end_inset
+
+.
+ De onderste grafiek laat 
+\begin_inset Formula $\left(\hat{T}\frac{d\overline{h}}{dt}\right)_{c_{dr},\,t=0}$
+\end_inset
+
+ zien.
+ In alle gevallen wordt deze samengestelde grootheid 0 wanneer 
+\begin_inset Formula $c_{dr}\rightarrow0$
+\end_inset
+
+.
+ Deling door 
+\begin_inset Formula $\hat{T}$
+\end_inset
+
+leidt echter tot 
+\begin_inset Formula $\left(\frac{d\overline{h}}{dt}\right)_{c_{dr=0},\,t=0}\rightarrow\pm\infty$
+\end_inset
+
+.
+ Dit gedrag komt overeen met dat in figuur 
+\begin_inset CommandInset ref
+LatexCommand pageref
+reference "fig:Gedrag-van-de-grws-voor-en-na-passage-drainageniveau"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+, die reeds laat zien dat 
+\begin_inset Formula $\left(\frac{d\overline{h}}{dt}\right)_{t=0}$
+\end_inset
+
+ steeds steiler wordt naarmate 
+\begin_inset Formula $c_{dr}\downarrow0$
+\end_inset
+
+.
+ Tegelijk zien we aan de groene en de rode lijn in figuur 
+\begin_inset CommandInset ref
+LatexCommand pageref
+reference "fig:sinf-dhdt0"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ dat het teken van 
+\begin_inset Formula $\left(\frac{d\overline{h}}{dt}\right)_{t=0}$
+\end_inset
+
+ afhankelijk kan zijn van de 
+\begin_inset Formula $c_{dr}$
+\end_inset
+
+, immers zowel de grondwaterstand zelf als 
+\begin_inset Formula $\hat{T}\left(\frac{d\overline{h}}{dt}\right)_{t=0}$
+\end_inset
+
+ kan van de grootte van 
+\begin_inset Formula $c_{dr}$
+\end_inset
+
+ afhangen.
+ 
 \end_layout
 
 \begin_layout Subsection
@@ -4166,6 +4485,163 @@ Gaat
 \end_layout
 
 \begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename hinf_and_dhdt0_vs_cdr.png
+	width 100text%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:sinf-dhdt0"
+
+\end_inset
+
+Boven: De uiteindelijke evenwichtsgrondwaterstand bij drainage voor de gegeven
+ parameters als een functie van de drainageweerstand.
+ En 
+\begin_inset Formula $\hat{\phi}$
+\end_inset
+
+ als functie van de drainageweerstand.
+ Onder: De stijgsnelheid van het grondwater op het moment dat de grondwaterstand
+ het drainageniveau bereikt als functie van de drainageweerstand.
+ De bovenste grafiek is ook een grafiek van 
+\begin_inset Formula $s_{\infty}$
+\end_inset
+
+, de verhoging op 
+\begin_inset Formula $t\rightarrow\infty$
+\end_inset
+
+ van de grondwaterstand ten opzichte van 
+\begin_inset Formula $\overline{h}_{0}$
+\end_inset
+
+ als gevolg van neerslagoverschot en slootpeil.
+ Deze 
+\begin_inset Formula $s_{\infty}\rightarrow0$
+\end_inset
+
+ voor 
+\begin_inset Formula $t\rightarrow0$
+\end_inset
+
+ zodat 
+\begin_inset Formula $\overline{h}\rightarrow\hat{\phi}$
+\end_inset
+
+ terwijl 
+\begin_inset Formula $\hat{\phi}\rightarrow z_{dr}$
+\end_inset
+
+ voor 
+\begin_inset Formula $c_{dr}\rightarrow0$
+\end_inset
+
+.
+ Dus voor
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename drainage_dhdt_func_cdr.png
+	width 100text%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:omklappen-van-teken-afh-van-cdr"
+
+\end_inset
+
+Zelfde als de voorgaande figuur maar nu 
+\begin_inset Formula $\left(\frac{\ensuremath{d\overline{h}}}{dt}\right)_{t=0}$
+\end_inset
+
+ uitgezet in plaats van 
+\begin_inset Formula $T_{h}\left(\frac{\ensuremath{d\overline{h}}}{dt}\right)_{t=0}$
+\end_inset
+
+.
+ We zien nu dat de snelheid waarmee de stijghoogte verandert bij het aantippen
+ van het drainageniveau toeneemt in absolute zin met afnemende drainageweerstand
+, maar dat het teken voor een bepaalde range van drainageweerstand tegengesteld
+ kan zijn.
+ Waar dit het geval is kan de grondwaterstand een zaagtandverloop rond het
+ drainageniveau vertonen.
+ Door de drainage anders te behandelen, namelijk door de drainageflux direct
+ van het neerslagoverschot af te trekken blijft de grondwaterstand wel stabiel
+ en exact op het drainageniveau hangen na het aantippen daarvan.
+ Deze laatste methode van omgang met drainage wordt geïmplementeerd en komt
+ overeen met het verloop bij drainageweerstand exact gelijk aan nul.
+ Figuur 
+\begin_inset CommandInset ref
+LatexCommand pageref
+reference "fig:Verloop-van-de-voor-en-na-aftrek-q_dr"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ laat dit zien.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
 De vraag of 
 \begin_inset Formula $\left(dh/dt\right)_{h_{0}=z_{dr}}$
 \end_inset
@@ -4184,180 +4660,29 @@ De vraag of
 \end_inset
 
 .
- We kunnen dit onderzoeken door in bovenstaande uitdrukking 
-\begin_inset Formula $\hat{c}$
+\end_layout
+
+\begin_layout Standard
+In het voorgaande hoofdstuk is aangetoond dat door het inschakelen van de
+ lage drainageweerstand op het moment dat de grondwaterstand het drainageniveau
+ aantikt 
+\begin_inset Formula $\frac{d\overline{h}}{dt}$
 \end_inset
 
- en 
-\begin_inset Formula $\hat{\phi}$
-\end_inset
+ van teken verandert en deze grondwaterstand onmiddellijk weer kan gaan
+ dalen, ook al gebeurt dit lang niet altijd, zoals blijkt uit figuur 
+\begin_inset CommandInset ref
+LatexCommand pageref
+reference "fig:sinf-dhdt0"
+plural "false"
+caps "false"
+noprefix "false"
 
- uit te schrijven en de factor met de exponent weg te laten.
- Dit levert de onderstaande uitdrukking van 
-\begin_inset Formula $y$
-\end_inset
-
- als functie van 
-\begin_inset Formula $c_{dr}$
 \end_inset
 
 .
- We kunnen dan nagaan of the teken van 
-\begin_inset Formula $y$
-\end_inset
-
- negatief kan worden wanneer 
-\begin_inset Formula $c_{dr}$
-\end_inset
-
- afneemt van 
-\begin_inset Formula $\infty$
-\end_inset
-
- tot nul:
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{equation}
-y\left(c_{dr}\right)=\left(\frac{\phi+z_{dr}\frac{c}{c_{dr}}}{1+\frac{c}{c_{dr}}}-z_{dr}\right)+N\frac{c}{1+\frac{c}{c_{dr}}}\left(1-\Lambda\right)+\left(h_{LR}-\frac{\phi+z_{dr}\frac{c}{c_{dr}}}{1+\frac{c}{c_{dr}}}\right)\hat{\Lambda}\label{eq:y_cdr}
-\end{equation}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-Voor 
-\begin_inset Formula $c_{dr}=\infty$
-\end_inset
-
- zij gegeven dat 
-\begin_inset Formula $y>0$
-\end_inset
-
- wat is dan de limit voor 
-\begin_inset Formula $c_{dr}\rightarrow0$
-\end_inset
-
-?
-\end_layout
-
-\begin_layout Standard
-De uitdrukking voor 
-\begin_inset Formula $y\left(c_{dr}=\infty\right)$
-\end_inset
-
- is
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{equation}
-y\left(c_{dr}=\infty\right)=\left(\phi-z_{dr}\right)+Nc-\left[Nc+\left(\phi-h_{LR}\right)\right]\hat{\Lambda}>0\label{eq:y_cdr-1}
-\end{equation}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-Het is altijd mogelijk om 
-\begin_inset Formula $y\left(c_{dr}=\infty\right)$
-\end_inset
-
- groter dan nul te laten zijn, bijvoorbeeld door het neerslagoverschot positief
- en groot genoeg te kiezen.
- Hiervoor is het van belang te weten dat 
-\begin_inset Formula $0\le\hat{\Lambda}\le1$
-\end_inset
-
-.
- Om het teken van 
-\begin_inset Formula $y$
-\end_inset
-
- te onderzoeken voor 
-\begin_inset Formula $c_{dr}\rightarrow0$
-\end_inset
-
- schrijven we 
-\begin_inset Formula $y$
-\end_inset
-
- als volgt
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{equation}
-y\left(c_{dr}\right)=\left(\frac{\phi c_{dr}+z_{dr}c}{c_{dr}+c}-z_{dr}\right)+N\frac{cc_{dr}}{c_{dr}+c}\left(1-\Lambda\right)+\left(h_{LR}-\frac{\phi c_{dr}+z_{dr}c}{c_{dr}+c}\right)\hat{\Lambda}\label{eq:y_cdr-2}
-\end{equation}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-Voor 
-\begin_inset Formula $c_{dr}\rightarrow0$
-\end_inset
-
- reduceert deze hele uitdrukking tot
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{equation}
-y\left(c_{dr}=0\right)=\left(h_{LR}-z_{dr}\right)\hat{\Lambda}\label{eq:y_cdr-2-1}
-\end{equation}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-Het is direct duidelijk dat het teken van 
-\begin_inset Formula $y\left(c_{dr}=0\right)<0$
-\end_inset
-
- wanneer het slootpeil 
-\begin_inset Formula $h_{LR}$
-\end_inset
-
- onder het drainageniveau ligt.
- Dit is niet alleen evident; het is bovendien nagenoeg altijd het geval
- in de praktijk.
- Het is dus inderdaad zo dat alleen door het inschakelen van de lage drainagewee
-rstand op het moment dat de grondwaterstand het drainageniveau aantikt deze
- grondwaterstand onmiddellijk weer kan gaan dalen.
- Dit gebeurt niet altijd, want daarvoor moet en 
-\begin_inset Formula $h_{LR}<z_{dr}$
-\end_inset
-
- en de drainageweerstand 
-\begin_inset Formula $c_{dr}$
-\end_inset
-
- laag genoeg zijn.
- Dit laatste is echter doorgaans het geval in de praktijk.
- Kortom simulatie van drainage door de drainageweerstand eenvoudig om te
- schakelen van 
-\begin_inset Formula $\infty$
-\end_inset
-
- naar een lage waarde die 
-\begin_inset Formula $c_{dr}$
-\end_inset
-
- doorgaans heeft, ontstaat in de regel een artificieel zaagtandverloop van
- de grondwaterstand rond of net onder het drainageniveau.
- Dit is onbevredigend.
- Ook voor het bepalen van de waterbalans in de situatie met drainage.
+ Dit is onbevredigend, ook voor het bepalen van de waterbalans in de situatie
+ met drainage.
 \end_layout
 
 \begin_layout Standard
@@ -4412,9 +4737,7 @@ De implementatie van drainage met samengestelde parameters als
 \end_inset
 
  leidt tot problemen wanneer de stijgende grondwaterstand het drainageniveau
- doorsnijdt en dan plotseling gaat zakken, omdat de drainageweerstand te
- klein is geworden.
- Dit is in de vorige paragraaf uitgebreid toegelicht en aangetoond.
+ doorsnijdt en dan plotseling gaat zakken.
  Om dit te voorkomen ontwikkelen we nu een andere aanpak.
  Deze beschrijft de stroming met formules die geen rekening te houden met
  drainage.
@@ -4425,6 +4748,11 @@ De implementatie van drainage met samengestelde parameters als
 eau en dat we met de afgetrokken flux de drainageflux (of de oppervlakteafvoer)
  direct deze afvoercomponent in handen hebben voor de waterbalans.
  We hebben hiervoor geen drainageweerstand nodig, alleen een drainageniveau.
+ Dit is equivalent met het hanteren van een drainageweerstand 
+\begin_inset Formula $c_{dr}=0$
+\end_inset
+
+.
 \end_layout
 
 \begin_layout Standard
@@ -4450,7 +4778,7 @@ Met
 \begin_layout Standard
 \begin_inset Formula 
 \[
-B=Nc-\left[Nc-\left(h_{LR}-\phi\right)\right]\Lambda
+s_{\infty}=Nc-\left[Nc-\left(h_{LR}-\phi\right)\right]\Lambda
 \]
 
 \end_inset
@@ -4470,7 +4798,7 @@ kan de oplossing korter geschreven worden.
 \begin_layout Standard
 \begin_inset Formula 
 \begin{align*}
-\overline{h}-\phi & =\left(\overline{h}_{0}-\phi\right)e^{-\frac{t-t_{0}}{T}}+B\left(1-e^{-\frac{t-t_{0}}{T}}\right)
+\overline{h}-\phi & =\left(\overline{h}_{0}-\phi\right)e^{-\frac{t-t_{0}}{T}}+s_{\infty}\left(1-e^{-\frac{t-t_{0}}{T}}\right)
 \end{align*}
 
 \end_inset
@@ -4485,7 +4813,7 @@ De verandering van de grondwaterstand met de tijd is dan
 \begin_layout Standard
 \begin_inset Formula 
 \begin{align*}
-\frac{d\overline{h}}{dt} & =\frac{1}{T}\left\{ \phi-\overline{h}_{0}+B\right\} e^{-\frac{t-t_{0}}{T}}
+\frac{d\overline{h}}{dt} & =\frac{1}{T}\left\{ \phi-\overline{h}_{0}+s_{\infty}\right\} e^{-\frac{t-t_{0}}{T}}
 \end{align*}
 
 \end_inset
@@ -4500,7 +4828,7 @@ De grondwaterstand stijgt wanneer
 \begin_layout Standard
 \begin_inset Formula 
 \[
-rising=\left(\phi-\overline{h}_{0}+B\right)>0
+rising=\left(\phi-\overline{h}_{0}+s_{\infty}\right)>0
 \]
 
 \end_inset
@@ -4527,7 +4855,7 @@ Het moment
 \begin_layout Standard
 \begin_inset Formula 
 \[
-z_{dr}-\phi=\left(\overline{h}_{0}-\phi\right)e^{-\frac{\tau}{T}}+B\left(1-e^{-\frac{\tau}{T}}\right)
+z_{dr}-\phi=\left(\overline{h}_{0}-\phi\right)e^{-\frac{\tau}{T}}+s_{\infty}\left(1-e^{-\frac{\tau}{T}}\right)
 \]
 
 \end_inset
@@ -4538,7 +4866,7 @@ zodat
 \begin_layout Standard
 \begin_inset Formula 
 \[
-z_{dr}-\phi-B=\left(\overline{h}_{0}-\phi-B\right)e^{-\frac{\tau}{T}}
+z_{dr}-\phi-B=\left(\overline{h}_{0}-\phi-s_{\infty}\right)e^{-\frac{\tau}{T}}
 \]
 
 \end_inset
@@ -4549,7 +4877,7 @@ en dus
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\tau=T\ln\left(\frac{\overline{h}_{0}-\phi-B}{z_{dr}-\phi-B}\right)
+\tau=T\ln\left(\frac{\overline{h}_{0}-\phi-s_{\infty}}{z_{dr}-\phi-s_{\infty}}\right)
 \]
 
 \end_inset
@@ -4783,6 +5111,53 @@ Nadat
 \[
 q_{dr}=N+\frac{\phi-\overline{h}_{0}}{c}\frac{1}{1-\Lambda}-\frac{\phi-h_{LR}}{c}\frac{\Lambda}{1-\Lambda}
 \]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename drainage_qdr_afgevangen.png
+	width 80text%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:Verloop-van-de-voor-en-na-aftrek-q_dr"
+
+\end_inset
+
+Verloop van de grondwaterstand met en zonder drainage.
+ Bij drainage (niveau zie oranje punt) wordt de drainageflux van het neerslagove
+rschot afgetrokken, waarna de grondwaterstand exact op het drainageniveau
+ blijft hangen.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
 
 \end_inset
 

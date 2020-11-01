@@ -63,7 +63,7 @@ sys.path.insert(0, PYTHON)
 
 from KNMI import knmi
 import GGOR.src.numeric.gg_mflow as gt
-import GGOR.src.numeric.gg_mflow_1parcel as gn
+#import GGOR.src.numeric.gg_mflow_1parcel as gn
 
 NOT = np.logical_not
 AND = np.logical_and
@@ -240,7 +240,8 @@ def prop2tvalues(tindex=None, var=None, props=None):
 # This simulator is meant to work indpendently of the class solution
 # It must therefore contain properties, solution name and the different
 # methods that are designed for specific solutions.
-def single_Layer_transient(solution_name=None, parcel_data=None, tdata=None):
+def single_Layer_transient(solution_name=None, parcel_data=None, tdata=None,
+                           use_w_not_c=False):
     """Return results tim_data with simulation results included in its columns.
 
     Parameters
@@ -260,6 +261,11 @@ def single_Layer_transient(solution_name=None, parcel_data=None, tdata=None):
             q_up: net seepage=, upward positive
             h1: head in the regional aquifer
         RH and EV24 must be in m/d!
+    use_w_not_c: bool
+        triggers use of specified analytical ditch resistance w instead of
+        computing the analytical ditch resistance from the real c, the
+        ditch circumference and the resistance from pertial penetration of
+        the ditch.
 
     Returns
     -------
@@ -314,7 +320,7 @@ def single_Layer_transient(solution_name=None, parcel_data=None, tdata=None):
 
 
     def w_from_c(cd=None, D=None, omega=None, kh=None, kv=None):
-        """Return analitical ditch resistance from real circumstances.
+        """Return analytical ditch resistance from real circumstances.
 
         Parameters
         ----------
@@ -488,13 +494,16 @@ def single_Layer_transient(solution_name=None, parcel_data=None, tdata=None):
             change_season = is_summer != was_summer;   was_summer = is_summer
 
             if change_season:
-                omega1, omega2 = get_omega(AHN=AHN, hlr=hlr_mean,
-                        D1=D1, D_CB=D_CB, d_dtich=d_ditch, b_ditch=b_ditch)
+                if use_w_not_c:
+                    pass
+                else:
+                    omega1, omega2 = get_omega(AHN=AHN, hlr=hlr_mean,
+                            D1=D1, D_CB=D_CB, d_dtich=d_ditch, b_ditch=b_ditch)
 
-                wo1 = w_from_c(cd=co, D=D1, omega=omega1, kh=kh1, kv=kv1)
-                wi1 = w_from_c(cd=ci, D=D1, omega=omega1, kh=kh1, kv=kv1)
-                wo2 = w_from_c(cd=co, D=D2, omega=omega2, kh=kh2, kv=kv2)
-                wi2 = w_from_c(cd=ci, D=D2, omega=omega2, kh=kh2, kv=kv2)
+                    wo1 = w_from_c(cd=co, D=D1, omega=omega1, kh=kh1, kv=kv1)
+                    wi1 = w_from_c(cd=ci, D=D1, omega=omega1, kh=kh1, kv=kv1)
+                    wo2 = w_from_c(cd=co, D=D2, omega=omega2, kh=kh2, kv=kv2)
+                    wi2 = w_from_c(cd=ci, D=D2, omega=omega2, kh=kh2, kv=kv2)
 
                 # Ditch restance to resistance used in MODFLOW's GHB and RIV packages
                 w_ghb1, w_riv1 = w_ghb_riv_from_wi_wo(wi=wi1, wo=wo1)
@@ -559,7 +568,7 @@ def single_Layer_transient(solution_name=None, parcel_data=None, tdata=None):
                         qv0 += (phi - h0mean) / c * dtau / dt              # exact for fixed phi:
                         qdr += qroff  * dtau / dt                          # exact for drainage
                         qb0 += (N - qdr - (hlr - phi) / c) * Lam * dtau/dt #exact for fixed phi
-                        qb1 += (phi - hlr) * D2 / w2 / b * dtau / dt
+                        qb1 += (phi - hlr) * D2 / w2 / b * dtau / dt       # ziede theorie
 
                         # Split ditch flow over ghb en riv (riv only works when outflow to ditch)
                         qghb1 += -qb0 if qb0 < 0. else  -qb0 / (1. + w_ghb1/ w_riv1)
@@ -605,9 +614,14 @@ def single_Layer_transient(solution_name=None, parcel_data=None, tdata=None):
 
     return tdata, HDS, CBC
 
+def steady_1L(soluton_name='L1', props=None, tdata=None, dx=1.0):
+    """Return steady solution for 1 layer with constant kD."""
+    k, D, b, wo, wi = props['kh'], props['D1'], props['b'], props['wo_ditch'], props['wi_ditch']
 
-def single_layer_steady(solution_name, props=None, tdata=None, dx=1.0):
-    """Return simulated results for cross section.
+
+
+def single_layer_steady(solution_name, props=None, tdata=None, dx=1.0, verbose=False):
+    """Return simulated results for cross section the mean situation in tdata.
 
     Parameters
     ----------
@@ -615,47 +629,67 @@ def single_layer_steady(solution_name, props=None, tdata=None, dx=1.0):
         'L1q' : Single layer given seepage.
         'L1h' : Single layer with given head in regional aquifer.
     props: dict
-        required properties of the system
-    tdata: dict or pd.DataFrame
+        required properties of the system. Must contain the static data required by
+        the model including 'h_summer' and 'h_winter'', 'phi' and 'q_up'.'
+    tdata: dict or pd.DataFrame or pd.Series
         Data for w hich to simulate the steady situation.
-        If dict, it must contain 'RH', 'EV24', 'q_up' or ''h1' depending on the case.
-        if pd.DataFrame, it must contain columns 'RH', 'EV24', 'q_up' or 'h1', depending on
-        the specific case.
-        If dict, the average situation is computed as a steady-state cross section.
+        Must contain 'RH', 'EV24' and the index must be a DateTime. Generally
+        tdata is one record of a larger time series, for which a steady
+        state result is desired.
     dx: float
         Desired x-axis step size in cross section. The width is known from
         the properties.
     """
-    k, c, b, wo, wi = props['kh'], props['c_CB'], props['b'], props['wo'], props['wi']
-    D = props['D1']
+    htol = 1e-5 # m
+    if isinstance(props, pd.DataFrame):
+        props = props.iloc[0]
+
+    k, D, c, b, wo, wi = props['kh'], props['D1'], props['c_CB'], props['b'], props['wo_ditch'], props['wi_ditch']
     lam = np.sqrt(k * D * c)
 
-    tdata = tdata.copy()
+    assert isinstance(tdata, pd.DataFrame), "tdata must be a pd.DataFrame not a {}".format(type(tdata))
 
-    tdata['hLR'] = np.ones(len(tdata)) * props['h_winter']
-    tdata['hLR'].loc[tdata['summer']] = props['h_summer']
+    # X coordinates
+    x = np.unique(np.hstack((np.arange(0, b, dx), b))) # make sure b is included
+    x = np.unique(np.hstack((-x[::-1], x[1:]))) # generate for total section -b < x < b
 
-    # X coordinages
-    x = np.hstack((np.arange(0, b, dx), b)).unique() # make sure b is included
-    x = np.hstack((x[::-1]), x[1:]) # generate for total section -b < x < b
+    tdata['q_up'] = props['q_up']
+    tdata['phi' ] = props['phi']
+    tdata['summer'] = [t.month >= 4 and t.month < 9 for t in tdata.index]
+    tdata['hLR'] = props['h_winter']
+    tdata.loc[tdata['summer'], 'hLR'] = props['h_summer']
+    t0 = tdata.index[0]
 
-    if solution_name == 'L1q':
-        tdata = add_var_to_tseries(tdata, var='q_up', props=props)
-    else:
-        tdata = add_var_to_tseries(tdata, var='phi', props=props)
+    tdata = dict(tdata.loc[t0])
 
-    tdata = dict(tdata.mean()) # turn DataFrame into a Series
     N = tdata['RH'] - tdata['EV24']
 
-    #TODO better implement wo and wi here
-    w = 0.5 * (wo + wi)
-    Lamb = 1 / (b  / lam / np.tanh(b  / lam) + (b /c) / (D / w))
-    phi = tdata['phi'] if solution_name == 'L1f' else tdata['h0'] - tdata['q_up'] * c
+    hx_prev = np.ones_like(x) *  tdata['hLR']
 
-    hx = phi + N * c - (N * c - (tdata['hLR'] - phi)
-                    ) * Lamb * (b / lam) * np.cosh(x / lam) / np.sinh(b / lam)
+    if solution_name == 'L1':
+        for iter in range(10):
+            w = wo if hx_prev.mean() > tdata['hLR'] else wi
+            hx = tdata['hLR'] + N / (2 * k * D) * (b ** 2 - x ** 2) + N * b * w  / D
+            if np.all(np.abs(hx - hx_prev) < htol):
+                break
+            else:
+                hx_prev = hx
+    else:
+        for iter in range(10):
+            w = wo if hx_prev.mean() > tdata['hLR'] else wi
+            Lamb = 1 / (b  / lam / np.tanh(b  / lam) + (b /c) / (D / w))
+            phi = tdata['phi'] if solution_name == 'L1f' else hx_prev - tdata['q_up'] * c
 
-    return hx
+            hx = phi + N * c - (N * c - (tdata['hLR'] - phi)
+                            ) * Lamb * (b / lam) * np.cosh(x / lam) / np.sinh(b / lam)
+            if verbose:
+                print('iter={}, np.max(np.abs(hx - hk_prev)) = {}'.format(iter, np.max(np.abs(hx - hx_prev))))
+            if np.all(np.abs(hx - hx_prev) < htol):
+                break
+            else:
+                hx_prev = hx
+
+    return hx, x, "Success!" if iter < 10 else "No convergence!"
 
 
 def sysmat(c, kD):    # System matrix
@@ -699,21 +733,26 @@ def multi_layer_steady(props=None, tdata=None, dx=1., plot=True, **kwargs):
 
     @TO 20200615, 20200908
     """
-    if not isinstance(tdata, dict):
-        raise ValueError('tdata must be a dict for the steady-state case.')
-
     nlay = 2
 
-    b, wo, wi = props['b'], props['wo'], props['wi']
+    b, wo, wi = props['b'], props['wo_ditch'], props['wi_ditch']
     kh = np.array([props['kh'], props['kh2']])[:, np.newaxis]
     D  = np.array([props['D1'], props[ 'D2']])[:, np.newaxis]
-    hdr, cdr, c = props['ANH'] - props['d_drain'], props['c_drain'], props['c_CB']
+    hdr, cdr, c = props['AHN'] - props['d_drain'], props['c_drain'], props['c_CB']
     kD = kh * D
 
-    x = np.hstack((np.arange(0, b, dx), b))
+    tdata['q_up'] = props['q_up']
+    tdata['summer'] = [t.month >= 4 and t.month <= 9 for t in tdata.index]
+    tdata['hLR'] = props['h_winter']
+    tdata.loc[tdata['summer'], 'hLR'] = props['h_summer']
+    tdata = tdata.iloc[0]
+
+    x = np.unique(np.hstack((np.arange(0, b, dx), b)))
+    x = np.unique(np.hstack((-x[::-1], x)))
+
     c = np.array([cdr, c, np.inf])[:, np.newaxis]
-    hLR = 0.5 * (props['h_summer'] + props['h_winter'])[:, np.newaxis]
-    q = np.array([tdata['RH'] - tdata['EV24'], props['q_up']])[:, np.newaxis]
+    hLR = tdata['hLR'] * np.ones((nlay, 1))
+    q = np.array([tdata['RH'] - tdata['EV24'], tdata['q_up']])[:, np.newaxis]
     g = np.zeros_like(q)
     g[0]  = hdr / (cdr * kD[0])
 
@@ -721,14 +760,14 @@ def multi_layer_steady(props=None, tdata=None, dx=1., plot=True, **kwargs):
 
     Am2, Am1, A1, A2 = sysmat(c, kD)
 
-    Kw  = np.diag(kh * w)
-    T   = np.diag(kD)
+    Kw  = np.eye(nlay) * (kh * w)
+    T   = np.eye(nlay) * kD
     Tm1 = la.inv(T)
 
     coshmb = la.coshm(Am1 * b)
     sinhmb = la.sinhm(Am1 * b)
     F = la.inv(coshmb + Kw @ Am1 @ sinhmb)
-    I = np.eye(len(kD))
+    I = np.eye(nlay)
 
     # Compute Phi for all x-values
     Phi = np.zeros((len(kD), len(x)))
@@ -761,7 +800,7 @@ def multi_layer_steady(props=None, tdata=None, dx=1., plot=True, **kwargs):
         for wb in WB:
             print(' '.join([f"{x:10.7f}" for x in wb]))
         print("\n")
-    return Phi
+    return Phi, x
 
 
 def multi_layer_transient(solution_name=None, parcel_data=None, tdata=None,  check=True, **kwargs):
@@ -847,7 +886,7 @@ def multi_layer_transient(solution_name=None, parcel_data=None, tdata=None,  che
         wriv = np.inf if wi < wo + wtol else wi * wo / (wi - wo)
 
         S  = np.array([props['sy'], props[ 'S2']])
-        kh = np.array([props['kh1'], props['kh2']])
+        kh = np.array([props['kh'], props['kh2']])
         D  = np.array([props['D1'], props[ 'D2']])
         kD = kh * D
 
@@ -864,7 +903,7 @@ def multi_layer_transient(solution_name=None, parcel_data=None, tdata=None,  che
         # Leakage from top and bottom aquifer to outside the model. i.e. hdr / (cdr * kD0)
         g = np.zeros((nlay, len(tdata)))
         g[0,  :]  = hdr / props['c_drain'] # this may be made time variable
-        g[-1, :]  = 0.  / props['c_bot']   # in fact a dummy (happens to be zero
+        #g[-1, :]  = 0.  / props['c_bot']   # in fact a dummy (happens to be zero
 
         coshmb = la.coshm(Am1 * b)
         sinhmb = la.sinhm(Am1 * b)
@@ -943,46 +982,6 @@ def multi_layer_transient(solution_name=None, parcel_data=None, tdata=None,  che
     HDS.GXG = GXG_obj(HDS)
 
     print('Done!')
-
-        # if check:
-        #     """Check the water budget."""
-
-        #     print('\n\nFirst water balance:')
-        #     # show the water balance
-        #     ttl_ = ['supply', 'storage', 'toDitch', 'leakage', 'sumq' ]
-        #     ttl0 = ['q0', 'qs0', 'qb0', 'ql0', 'sumq0']
-        #     ttl1 = ['q1', 'qs1', 'qb1', 'ql1', 'sumq1']
-
-        #     mxcols = pd.options.display.max_columns
-        #     pd.options.display.max_columns = len(ttl_) + 1
-
-        #     print("\nWater balance first layer")
-        #     print('                  ', ' '.join([f"{k:10s}" for k in ttl_]))
-        #     print(tdata[ttl0])
-
-        #     print("\nWater balance second layer")
-        #     print('                  ', ' '.join([f"{k:10s}" for k in ttl_]))
-        #     print(tdata[ttl1])
-        #     print()
-        #     pd.options.display.max_columns = mxcols
-
-        #     print('\n\nSecond water balance:')
-        #     # show the water balance
-        #     ttl0_ = ['supply', 'storage', 'toDitch', 'drn', 'leak', 'sumq' ]
-        #     ttl0  = ['q0',     'qs0',     'qb0',     'qdr', 'qv0', 'sumq01']
-        #     ttl1_ = ['supply', 'storage', 'toDitch', 'drn', 'leak', 'sumq' ]
-        #     ttl1  = ['q1',     'qs1',     'qb1',     'qv1',        'sumq11']
-
-        #     print("\nWater balance first layer")
-        #     print('                  ', ' '.join([f"{k:10s}" for k in ttl0_]))
-        #     print(tdata[ttl0])
-
-        #     print("\nWater balance second layer")
-        #     print('                  ', ' '.join([f"{k:10s}" for k in ttl1_]))
-        #     print(tdata[ttl1])
-        #     print()
-        #     pd.options.display.max_columns = mxcols
-
 
     return tdata, HDS, CBC # return updated DataFrame
 
@@ -1356,11 +1355,13 @@ class Solution:
     @TO 2020-07-01
     """
 
-    def __init__(self, parcel_data=None):
+    def __init__(self, dirs=None, parcel_data=None):
         """Return an instance of an analytical solution only storing name and properties.
 
         Parameters
         ----------
+        dirs: DirStruct obj
+            knows the directory structure of the GGOR project and its case
         props: dict
             a dict containing the properrties. The necessary properties
             are given in the example tamplate in this class. Not all
@@ -1368,6 +1369,7 @@ class Solution:
             may be omitted from the actual properties.
         """
         self.name = str(self.__class__).split('.')[-1].split("'")[0]
+        self.case = os.path.basename(dirs.case)
         self.parcel_data = parcel_data
         return
 
@@ -1411,7 +1413,7 @@ class Solution:
             raise KeyError("{" + " ,".join([f"'{k}'" for k in missing_cols]) + "} are missing.")
 
 
-    def sim(self, tdata=None):
+    def sim(self, tdata=None, use_w_not_c=False):
         """Compute and store head and flows in added columns of the input tdata.
 
         Parameters
@@ -1420,6 +1422,11 @@ class Solution:
         required columns: 'RH','EV24'
             RH: [m/d] precipitation
             EV24: [m/d] evap
+        use_w_not_c: bool
+            triggers use of prescribed analytical ditch resistance `w` instead
+            of computing it from prescribed ditch resistance c, the ditch
+            circumference and the extra resistance due to partial ditch
+            penetration.
 
         Returns
         -------
@@ -1445,19 +1452,19 @@ class Solution:
         self.tdata, self.HDS, self.CBC = single_Layer_transient(
                 solution_name=self.name,
                 parcel_data = self.parcel_data,
-                tdata=tdata)
+                tdata=tdata,
+                use_w_not_c=use_w_not_c)
         return
 
 
-    def plot_heads(self, titles=['Heads top aquifer', 'Heads bottom aquifer.'],
-             xlabel='time', ylabels=['m', 'm'], selection=None,
-             size_inches=(14, 8), **kwargs):
+    def plot_heads(self, case=None, xlabel='time', ylabels=['m', 'm'],
+                   selection=None, size_inches=(14, 8), **kwargs):
         """Plot results of 2 -layer analytical simulation.
 
         Parameters
         ----------
-        titles: 2-list of 2-list of titles
-            titles for the two head graphs, titles for the two flow graphs.
+        case: str
+            naem of the current case (used in chart titles)
         xlabel: str
             xlabel
         ylabels: 2-list of 2-list of titiles
@@ -1476,6 +1483,10 @@ class Solution:
         self.ax[:, 0] are the head axes and self.ax[:, 1] are the flow axes.
         """
         #self.ax = plot_2layer_heads_and_flows(tdata=self.tdata, props=self.props)
+        case = self.case if case is None else case
+
+        titles = ['Heads top aquifer', 'Heads bottom aquifer']
+        titles = [f'{title}, case {case}, (Solution {self.name})' for title in titles]
 
         titles = [f'({self.name}) ' + title for title in titles]
 
@@ -1485,15 +1496,15 @@ class Solution:
         return ax
 
 
-    def plot_cbc(self, titles=['Fluxes top aquifer.', 'Fluxes bottom aquifer.'], xlabel='time',
+    def plot_cbc(self, case=None, xlabel='time',
              ylabels=['flux [m/d]', 'flux [m/d]'], sharex=True, sharey=False,
              size_inches=(14, 8), selection=None, ax=None, **kwargs):
         """Plot results of 2 -layer analytical simulation.
 
         Parameters
         ----------
-        titles: 2-list of 2-list of titles
-            titles for the two head graphs, titles for the two flow graphs.
+        case: str
+            naem of the current case (used in chart titles)
         xlabel: str
             xlabel
         ylabels: 2-list of 2-list of titiles
@@ -1513,7 +1524,10 @@ class Solution:
         """
         #self.ax = plot_2layer_heads_and_flows(tdata=self.tdata, props=self.props)
 
-        titles = [f'(Solution {self.name}), ' + title for title in titles]
+        case = self.case if case is None else case
+
+        titles = ['Fluxes top aquifer.', 'Fluxes bottom aquifer.']
+        titles = [f'{title}, case {case}, (Solution {self.name})' for title in titles]
 
         self.CBC.plot(titles=titles, xlabel=xlabel,
              ylabels=ylabels, sharex=sharex, sharey=sharey,
@@ -1530,55 +1544,141 @@ class Solution:
         return self.CBC.get_budget()
 
 # Specific analytical solution as classes derived from base class "Solution".
+class L1(Solution):
+    """Class for simulating one layer cross sections without given underlying regional head.
+
+    The solution has drainage, ditches, entry and exit ditch resistance.
+    """
+
+    def __init__(self, dirs=None, parcel_data=None):
+        """Return a Solution object to simulate 1D transient flow without.
+
+        Parameters
+        ----------
+        dirs: DirStruct obj
+            knows the directory structure of the GGOR project and its case
+        parcel_data: pd.DataFrame
+            the properties of the parcels
+        """
+        super().__init__(dirs=dirs, parcel_data=parcel_data)
+        self.name = 'L1'
+
 class L1f(Solution):
-    """Return analytical solution with given phi in regional aquifer.
+    """Class for simulating one layer cross sections with given underlying regional head.
 
     The solution has drainage, ditches in top aquifer only with different
     entry and exit ditch resistance. Regional head is given.
     """
 
-    def __init__(self, parcel_data=None):
-        super().__init__(parcel_data=parcel_data)
+    def __init__(self, dirs=None, parcel_data=None):
+        """Return a Solution object to simulate 1D transient flow with given underlying regional head.
+
+        Parameters
+        ----------
+        dirs: DirStruct obj
+            knows the directory structure of the GGOR project and its case
+        parcel_data: pd.DataFrame
+            the properties of the parcels
+        """
+        super().__init__(dirs=dirs, parcel_data=parcel_data)
         self.name = 'L1f'
 
 class L1q(Solution):
-    """Return analytical solution wiith given seepage from regional aquifer."""
+    """Class for simulating one layer cross sections with given upward regional seepage flux."""
 
-    def __init__(self, parcel_data=None):
-        super().__init__(parcel_data=parcel_data)
+    def __init__(self, dirs=None, parcel_data=None):
+        """Return Solution object for simulating 1 layer cross sections with given regional seepage flux.
+
+        Parameters
+        ----------
+        dirs: DirStruct obj
+            knows the directory structure of the GGOR project and its case
+        parcel_data: pd.DataFrame
+            the properties of the parcels.
+        """
+        super().__init__(dirs=dirs, parcel_data=parcel_data)
         self.name = 'L1q'
 
 class L1(Solution):
     """One layer aka Kraaijenhoff vd Leur (Carslaw & Jaeger (1959, p87))."""
 
-    def __init__(self, props=None):
-        super().__init__(props=props)
+    def __init__(self, dirs=None, parcel_data=None):
+        """Return a Solution object to analytically simulate transient 1-layer flow.
+
+        Parameters
+        ----------
+        dirs: DirStruct obj
+            knows the directory structure of the GGOR project and its case
+        parcel_data: pd.DataFrame
+            the properties of the parcels
+        """
+        super().__init__(dirs=dirs, parcel_data=parcel_data)
 
 
 class L2(Solution):
     """Return analytic two-layer solution."""
 
-    def __init__(self, parcel_data=None):
-        super().__init__(parcel_data=parcel_data)
+    def __init__(self, dirs=None, parcel_data=None):
+        """Return a solution object to analytically simulate transient 2-layer flow.
+
+        Parameters
+        ----------
+        dirs: DirStruct obj
+            knows the directory structure of the GGOR project and its case
+        parcel_data: pd.DataFrame
+            the properties of the parcels
+        """
+        super().__init__(dirs=dirs, parcel_data=parcel_data)
         self.name = 'L2'
 
-    def sim(self, tdata=None):
-        """Simulate 2-layer system using multilayer analytical solution."""
+    def sim(self, tdata=None, use_w_not_c=False):
+        """Simulate 2-layer system using multilayer analytical solution.
+
+        tdata: pd.DataFrame
+            time data, with columns RH (precip), EV24 (evapotranspiration)
+            the index are are datetimes.
+        use_w_not_c: bool
+            triggers use of presscribed analytical ditch resistance `w` instead
+            of computing it from the real ditch resistance, the ditch circum-
+            ference and the effect of conctraction of streamlines due to
+            partially penetration of the ditch(es)
+        """
         self.tdata, self.HDS, self.CBC = multi_layer_transient(
-                            tdata=tdata, parcel_data=self.parcel_data)
+                            tdata=tdata, parcel_data=self.parcel_data,
+                            use_w_not_c=use_w_not_c)
 
 class Lnum(Solution):
     """Return numeric solution using MODFLOW."""
 
-    def __init__(self, parcel_data=None):
-        super().__init__(parcel_data=parcel_data)
+    def __init__(self, dirs=None, parcel_data=None):
+        """Generate a Lnum object (numerical simulation).
+
+        Parameters
+        ----------
+        dirs: DirStruct obj
+            knows the directory structure of the GGOR project and its case
+        parcel_data: pd.DataFrame
+            parcel properties
+        """
+        super().__init__(dirs=dirs, parcel_data=parcel_data)
         self.name = 'modflow'
+        self.dirs = dirs
 
-    def sim(self, tdata=None):
-        """Simulate 2-layer system using multilayer analytical solution."""
-        self.tdata = tdata
-        gn.modflow(parel_dadta=self.parcel_data, dx=1.0, tdata=tdata)
+    def sim(self, tdata=None, use_w_not_c=False):
+        """Numerically simulate 2-layer system using MODFLOW.
 
+        tdata: pd.DataFrame
+            time data, with columns RH (precip), EV24 (evapotranspiration)
+            the index are are datetimes.
+        use_w_not_c: bool
+            triggers use of presscribed analytical ditch resistance `w` instead
+            of computing it from the real ditch resistance, the ditch circum-
+            ference and the effect of conctraction of streamlines due to
+            partially penetration of the ditch(es)
+        """
+        par, spd, bdd, gr = gt.run_modflow(dirs=self.dirs, parcel_data=self.parcel_data,
+                     tdata=tdata, laycbd=(1, 0), dx=1., use_w_not_c=False)
+        return par, spd, bdd, gr
 
 #%% __main__
 
@@ -1587,6 +1687,7 @@ if __name__ == '__main__':
 
     test=True
     size_inches = (14, 10)
+    use_w_not_c = False
 
     # Parameters to generate the model. Well use this as **kwargs
     GGOR_home = os.path.expanduser('~/GRWMODELS/python/GGOR') # home directory
@@ -1624,58 +1725,67 @@ if __name__ == '__main__':
         parcel_data = gt.GGOR_data(defaults=gt.defaults, bofek=bofek, BMINMAX=(5, 250),
                                    GGOR_home=GGOR_home, case=case).data
 
+   #%%
     parcel_data = parcel_data.iloc[:5]
-
-    if False: # analytic with given head in regional aquifer
-        l1f = L1f(parcel_data=parcel_data)
-        l1f.sim(tdata=tdata)
+    obj = None
+    scenario = 4
+    if scenario == 1: # analytic with given head in regional aquifer
+        l1f = L1f(dirs=dirs, parcel_data=parcel_data)
+        l1f.sim(tdata=tdata, use_w_not_c=use_w_not_c)
         l1f.plot_heads()
         l1f.plot_cbc()
         budget = l1f.CBC.get_budget()
-    elif True: # analytic with given seepage from regional aquifer
-        l1q = L1q(parcel_data=parcel_data)
-        l1q.sim(tdata=tdata)
+        obj = L1f
+    if scenario == 2: # analytic with given seepage from regional aquifer
+        l1q = L1q(dirs=dirs, parcel_data=parcel_data)
+        l1q.sim(tdata=tdata, use_w_not_c=use_w_not_c)
         l1q.plot_heads()
         l1q.plot_cbc()
         budget = l1q.CBC.get_budget()
-    elif False: # Analytic two layers, with ditches in both aquifers
-        l2 = L2(parcel_data=parcel_data)
-        l2.sim(tdata=tdata)
+        obj = L1q
+    if scenario == 3: # Analytic two layers, with ditches in both aquifers
+        l2 = L2(diss=dirs, parcel_data=parcel_data)
+        l2.sim(tdata=tdata, use_w_not_c=use_w_not_c)
         l2.plot_heads()
         l2.plot_cbc()
         budget = l2.CBC.get_budget()
-    elif False: # numerical with dichtes in both aquifers
-        pass
-        #mf = Lnum(parcel_data=parcel_data)
-        #mf.sim(tdata=tdata)
-        #mf.plot(titles=titles, size_inches=size_inches)
-    else:
-        False("?? Nothing to do!!")
+        obj = L2
+    if scenario == 4: # numerical with dichtes in both aquifers
+        mf = Lnum(dirs=dirs, parcel_data=parcel_data)
+        par, spd, bdd, gr = mf.sim(tdata=tdata, use_w_not_c=use_w_not_c)
+        heads = gt.Heads_obj(dirs, tdata=tdata, IBOUND=par['IBOUND'], gr=gr)
+        watbal = gt.Watbal_obj(dirs,
+                               tdata=tdata,
+                               parcel_data=parcel_data,
+                               IBOUND=par['IBOUND'],
+                               gr=gr)
+        selection = [0, 1, 2, 3]
+        titles=['Parcel averaged heads', 'Parcel averaged heads']
+        ax = heads.plot(tdata=tdata,
+               parcel_data=parcel_data,
+               selection=selection,
+               titles=titles,
+               size_inches=(14, 8))
+        ax = watbal.plot(parcel_data=parcel_data,
+                         tdata=tdata,
+                         sharey=True)
 
     print('---- All done ! ----')
 
-    #%% Plot for verification
-    try:
-        obj = l1f
-    except:
-        try:
-            obj = l1q
-        except:
-            obj = l2
+    if obj is not None:
+        d   = obj.CBC.data
+        hds = obj.HDS.data
+        ax = newfig2(['test HDS', 'test CBC'], 'tijd', ['m', 'm/d'])
+        ax[0].plot(obj.tdata.index, hds[0, 0, :], label='h[L0, ip0]')
+        ax[0].plot(obj.tdata.index, hds[1, 0, :], label='h[L1, ip0]')
 
-    d = obj.CBC.data
-    hds = obj.HDS.data
-    ax = newfig2(['test HDS', 'test CBC'], 'tijd', ['m', 'm/d'])
-    ax[0].plot(obj.tdata.index, hds[0, 0, :], label='h[L0, ip0]')
-    ax[0].plot(obj.tdata.index, hds[1, 0, :], label='h[L1, ip0]')
-
-    ax[0].legend()
-    ax[1].plot(obj.tdata.index, d['STO'][0, 0, :], color='cyan', label='STO[L0, ip0]')
-    ax[1].plot(obj.tdata.index, d['RCH'][0, 0, :], color='green',  label='RCH[L0, ip0]')
-    ax[1].plot(obj.tdata.index, d['EVT'][0, 0, :], color='yellow',  label='EVT[L0, ip0]')
-    ax[1].plot(obj.tdata.index, d['FLF'][0, 0, :], color='darkgray', label='FLF[L0, ip0]')
-    ax[1].plot(obj.tdata.index, d['DRN'][0, 0, :], color='lightgray', label='DRN[L0, ip0]')
-    ax[1].plot(obj.tdata.index, d['GHB'][0, 0, :], color='purple', label='GHB[L0, ip0]')
-    ax[1].plot(obj.tdata.index, d['RIV'][0, 0, :], color='magenta', label='RIV[L0, ip0]')
-    ax[1].legend()
-    plt.show()
+        ax[0].legend()
+        ax[1].plot(obj.tdata.index, d['STO'][0, 0, :], color='cyan', label='STO[L0, ip0]')
+        ax[1].plot(obj.tdata.index, d['RCH'][0, 0, :], color='green',  label='RCH[L0, ip0]')
+        ax[1].plot(obj.tdata.index, d['EVT'][0, 0, :], color='yellow',  label='EVT[L0, ip0]')
+        ax[1].plot(obj.tdata.index, d['FLF'][0, 0, :], color='darkgray', label='FLF[L0, ip0]')
+        ax[1].plot(obj.tdata.index, d['DRN'][0, 0, :], color='lightgray', label='DRN[L0, ip0]')
+        ax[1].plot(obj.tdata.index, d['GHB'][0, 0, :], color='purple', label='GHB[L0, ip0]')
+        ax[1].plot(obj.tdata.index, d['RIV'][0, 0, :], color='magenta', label='RIV[L0, ip0]')
+        ax[1].legend()
+        plt.show()

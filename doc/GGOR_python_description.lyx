@@ -1806,7 +1806,7 @@ q_{RCH}+q_{FLF}+q_{GHB} & =-q_{STO}\label{eq:afstromingsposten}\\
 \end_layout
 
 \begin_layout Standard
-Het is direct duidelijk van de formules dat -vergelijking 
+Het blijkt direct uit de formules dat vergelijking 
 \begin_inset CommandInset ref
 LatexCommand pageref
 reference "eq:qSTO"
@@ -2027,7 +2027,7 @@ tenslotte
 \end_layout
 
 \begin_layout Subsection
-Exacte middeling over de tijstap voor waterbalansposten en grondwaterstanden
+Exacte middeling over de tijdstap voor waterbalansposten en grondwaterstanden
 \end_layout
 
 \begin_layout Standard
@@ -4494,6 +4494,7 @@ status open
 \align center
 \begin_inset Graphics
 	filename hinf_and_dhdt0_vs_cdr.png
+	width 100text%
 
 \end_inset
 
@@ -4558,6 +4559,80 @@ Boven: De uiteindelijke evenwichtsgrondwaterstand bij drainage voor de gegeven
 
 \end_inset
 
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename drainage_dhdt_func_cdr.png
+	width 100text%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:omklappen-van-teken-afh-van-cdr"
+
+\end_inset
+
+Zelfde als de voorgaande figuur maar nu 
+\begin_inset Formula $\left(\frac{\ensuremath{d\overline{h}}}{dt}\right)_{t=0}$
+\end_inset
+
+ uitgezet in plaats van 
+\begin_inset Formula $T_{h}\left(\frac{\ensuremath{d\overline{h}}}{dt}\right)_{t=0}$
+\end_inset
+
+.
+ We zien nu dat de snelheid waarmee de stijghoogte verandert bij het aantippen
+ van het drainageniveau toeneemt in absolute zin met afnemende drainageweerstand
+, maar dat het teken voor een bepaalde range van drainageweerstand tegengesteld
+ kan zijn.
+ Waar dit het geval is kan de grondwaterstand een zaagtandverloop rond het
+ drainageniveau vertonen.
+ Door de drainage anders te behandelen, namelijk door de drainageflux direct
+ van het neerslagoverschot af te trekken blijft de grondwaterstand wel stabiel
+ en exact op het drainageniveau hangen na het aantippen daarvan.
+ Deze laatste methode van omgang met drainage wordt geïmplementeerd en komt
+ overeen met het verloop bij drainageweerstand exact gelijk aan nul.
+ Figuur 
+\begin_inset CommandInset ref
+LatexCommand pageref
+reference "fig:Verloop-van-de-voor-en-na-aftrek-q_dr"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ laat dit zien.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
 
 \end_layout
 
@@ -5036,6 +5111,53 @@ Nadat
 \[
 q_{dr}=N+\frac{\phi-\overline{h}_{0}}{c}\frac{1}{1-\Lambda}-\frac{\phi-h_{LR}}{c}\frac{\Lambda}{1-\Lambda}
 \]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename drainage_qdr_afgevangen.png
+	width 80text%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:Verloop-van-de-voor-en-na-aftrek-q_dr"
+
+\end_inset
+
+Verloop van de grondwaterstand met en zonder drainage.
+ Bij drainage (niveau zie oranje punt) wordt de drainageflux van het neerslagove
+rschot afgetrokken, waarna de grondwaterstand exact op het drainageniveau
+ blijft hangen.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
 
 \end_inset
 
