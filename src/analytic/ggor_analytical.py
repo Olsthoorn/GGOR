@@ -52,6 +52,7 @@ import numpy as np
 import pandas as pd
 import scipy.linalg as la
 import matplotlib.pyplot as plt
+import pdb
 
 import os
 PYTHON = os.path.expanduser('~/GRWMODELS/python/')
@@ -451,9 +452,15 @@ def single_Layer_transient(solution_name=None, parcel_data=None, tdata=None,
 
         AHN = props['AHN'] # Ground surface elevation
         b, c   = props['b'], props['c_CB']
-        wo, wi = props['wo_ditch'], props['wi_ditch']
-        co, ci = props['co_ditch'], props['ci_ditch']
-        d_ditch, b_ditch = props['d_ditch'], props['b_ditch']
+
+        if use_w_not_c:
+            # both layers the same wo and wi
+            wo1, wo2 = props['wo_ditch'], props['wo_ditch']
+            wi1, wi2 = props['w1_ditch'], props['wi_ditch']
+        else:
+            co, ci = props['co_ditch'], props['ci_ditch']
+            d_ditch, b_ditch = props['d_ditch'], props['b_ditch']
+
         mu, S  = props['sy'], props['S2']
         kh1, kv1, kh2, kv2 = props['kh'], props['kv'], props['kh2'], props['kv2']
         hdr    = AHN - props['d_drain']
@@ -461,9 +468,6 @@ def single_Layer_transient(solution_name=None, parcel_data=None, tdata=None,
 
         lam = kh1 * D1 * c
         T = mu * c
-
-        # circumference of ditch in cover layer and possibly in regional aquifer
-        hlr_mean = 0.5 * (props['h_winter'] + props['h_summer'])
 
         tdata['hLR'] = props['h_winter']
         tdata.loc[tdata['summer'], 'hLR'] = props['h_summer']
@@ -497,9 +501,8 @@ def single_Layer_transient(solution_name=None, parcel_data=None, tdata=None,
                 if use_w_not_c:
                     pass
                 else:
-                    omega1, omega2 = get_omega(AHN=AHN, hlr=hlr_mean,
+                    omega1, omega2 = get_omega(AHN=AHN, hlr=hlr,
                             D1=D1, D_CB=D_CB, d_dtich=d_ditch, b_ditch=b_ditch)
-
                     wo1 = w_from_c(cd=co, D=D1, omega=omega1, kh=kh1, kv=kv1)
                     wi1 = w_from_c(cd=ci, D=D1, omega=omega1, kh=kh1, kv=kv1)
                     wo2 = w_from_c(cd=co, D=D2, omega=omega2, kh=kh2, kv=kv2)
@@ -509,7 +512,7 @@ def single_Layer_transient(solution_name=None, parcel_data=None, tdata=None,
                 w_ghb1, w_riv1 = w_ghb_riv_from_wi_wo(wi=wi1, wo=wo1)
                 w_ghb2, w_riv2 = w_ghb_riv_from_wi_wo(wi=wi2, wo=wo2)
 
-            w1 = wi if h0[it] > hlr else wo
+            w1 = wi1 if h0[it] > hlr else wo1
             Lam  = 1 / ((b / lam) / np.tanh(b / lam) + (w1 / D1) * (c / b))
 
             w2 = wi2 if hlr > h1[it] else wo2
@@ -614,13 +617,8 @@ def single_Layer_transient(solution_name=None, parcel_data=None, tdata=None,
 
     return tdata, HDS, CBC
 
-def steady_1L(soluton_name='L1', props=None, tdata=None, dx=1.0):
-    """Return steady solution for 1 layer with constant kD."""
-    k, D, b, wo, wi = props['kh'], props['D1'], props['b'], props['wo_ditch'], props['wi_ditch']
 
-
-
-def single_layer_steady(solution_name, props=None, tdata=None, dx=1.0, verbose=False):
+def single_layer_steady(solution_name, props=None, tdata=None, dx=1.0, verbose=False, use_w_not_c=None):
     """Return simulated results for cross section the mean situation in tdata.
 
     Parameters
@@ -639,13 +637,26 @@ def single_layer_steady(solution_name, props=None, tdata=None, dx=1.0, verbose=F
     dx: float
         Desired x-axis step size in cross section. The width is known from
         the properties.
+    use_w_not_c: bool
+       Telling whether to use the analytical ditch resistance w or the real one c
+       with the effect of partially penentrating ditches.
     """
     htol = 1e-5 # m
+    MAXITER = 100
     if isinstance(props, pd.DataFrame):
         props = props.iloc[0]
 
-    k, D, c, b, wo, wi = props['kh'], props['D1'], props['c_CB'], props['b'], props['wo_ditch'], props['wi_ditch']
-    lam = np.sqrt(k * D * c)
+    kh, kv, D, c, b = props['kh'], props['kv'], props['D1'], props['c_CB'], props['b']
+
+    if use_w_not_c:
+        wo, wi =  props['wo_ditch'], props['wi_ditch']
+    else:
+        co, ci, omega = props['co_ditch'], props['ci_ditch'], props['ditch_omega1']
+        wpp1 =   2 / (np.pi * np.sqrt(kh * kv)) * np.log(D * np.sqrt(kh / kv)/ props['ditch_omega1'])
+        wo = co * D / omega + wpp1
+        wi = ci * D / omega + wpp1
+
+    lam = np.sqrt(kh * D * c)
 
     assert isinstance(tdata, pd.DataFrame), "tdata must be a pd.DataFrame not a {}".format(type(tdata))
 
@@ -666,30 +677,36 @@ def single_layer_steady(solution_name, props=None, tdata=None, dx=1.0, verbose=F
 
     hx_prev = np.ones_like(x) *  tdata['hLR']
 
+    success = False
     if solution_name == 'L1':
-        for iter in range(10):
+        for iter in range(MAXITER):
             w = wo if hx_prev.mean() > tdata['hLR'] else wi
-            hx = tdata['hLR'] + N / (2 * k * D) * (b ** 2 - x ** 2) + N * b * w  / D
-            if np.all(np.abs(hx - hx_prev) < htol):
+            hx = tdata['hLR'] + N / (2 * kh * D) * (b ** 2 - x ** 2) + N * b * w  / D
+            if np.mean(np.abs(hx - hx_prev) < htol):
+                success = True
                 break
             else:
                 hx_prev = hx
     else:
-        for iter in range(10):
+        for iter in range(MAXITER):
             w = wo if hx_prev.mean() > tdata['hLR'] else wi
             Lamb = 1 / (b  / lam / np.tanh(b  / lam) + (b /c) / (D / w))
-            phi = tdata['phi'] if solution_name == 'L1f' else hx_prev - tdata['q_up'] * c
+            phi = tdata['phi'] if solution_name == 'L1f' else np.mean(hx_prev) + tdata['q_up'] * c
 
             hx = phi + N * c - (N * c - (tdata['hLR'] - phi)
                             ) * Lamb * (b / lam) * np.cosh(x / lam) / np.sinh(b / lam)
             if verbose:
                 print('iter={}, np.max(np.abs(hx - hk_prev)) = {}'.format(iter, np.max(np.abs(hx - hx_prev))))
-            if np.all(np.abs(hx - hx_prev) < htol):
+            if np.mean(np.abs(hx - hx_prev) < htol):
+                hx = np.vstack((hx, phi * np.ones_like(x)))
+                success = True
                 break
             else:
                 hx_prev = hx
 
-    return hx, x, "Success!" if iter < 10 else "No convergence!"
+    if not success:
+        print("No sucess for solution name = {}".format(solution_name))
+    return hx, x, success
 
 
 def sysmat(c, kD):    # System matrix
@@ -714,7 +731,7 @@ def sysmat(c, kD):    # System matrix
     return Am2, Am1, A1, A2
 
 
-def multi_layer_steady(props=None, tdata=None, dx=1., plot=True, **kwargs):
+def multi_layer_steady(props=None, tdata=None, dx=1., plot=True, use_w_not_c=None, **kwargs):
     """Return steady multilayer solution for symmetrial cross section.
 
     With all tdata in a dict kwargs, call this function using
@@ -730,16 +747,36 @@ def multi_layer_steady(props=None, tdata=None, dx=1., plot=True, **kwargs):
         properties of the parcel
     tdata: dict
         time data for the moment to compute the steady state solution
+    use_w_not_c: bool
+       Telling whether to use the analytical ditch resistance w or the real one c
+       with the effect of partially penentrating ditches.
 
     @TO 20200615, 20200908
     """
+    WINF = 1e9 # in case w is inf (e.g. no ditch present in reg. aquifer)
     nlay = 2
 
-    b, wo, wi = props['b'], props['wo_ditch'], props['wi_ditch']
+    b  = props['b']
     kh = np.array([props['kh'], props['kh2']])[:, np.newaxis]
+    kv = np.array([props['kv'], props['kv2']])[:, np.newaxis]
     D  = np.array([props['D1'], props[ 'D2']])[:, np.newaxis]
     hdr, cdr, c = props['AHN'] - props['d_drain'], props['c_drain'], props['c_CB']
     kD = kh * D
+    #pdb.set_trace()
+    if use_w_not_c:
+        assert props['wi_ditch'] >= props['wo_ditch'],\
+            AssertionError("wi_ditch must >= wo_ditch")
+        assert props['wi_ditch2'] >= props['wo_ditch2'],\
+            AssertionError("wi_ditch2 must >= wo_ditch2")
+        wo = np.array([props['wo_ditch'], props['wo_ditch2']])[:, np.newaxis]
+        wi = np.array([props['wi_ditch'], props['wi_ditch2']])[:, np.newaxis]
+    else:
+        assert props['ci_ditch'] >= props['co_ditch'],\
+                AssertionError("ci_ditch must >= co_ditch]")
+        omega = np.array([props['ditch_omega1'], props['ditch_omega2']])[:, np.newaxis]
+        wpp = 2 / np.pi / np.sqrt(kh * kv) * np.log(D * np.sqrt(kh / kv) / omega)
+        wo = props['co_ditch'] * D / omega + wpp # wpp = due to partial penetration
+        wi = props['ci_ditch'] * D / omega * wpp
 
     tdata['q_up'] = props['q_up']
     tdata['summer'] = [t.month >= 4 and t.month <= 9 for t in tdata.index]
@@ -757,6 +794,7 @@ def multi_layer_steady(props=None, tdata=None, dx=1., plot=True, **kwargs):
     g[0]  = hdr / (cdr * kD[0])
 
     w = (wo if q[0] + q[1] > 0 else wi) * np.ones((nlay, 1))
+    w[np.isinf(w)] = WINF
 
     Am2, Am1, A1, A2 = sysmat(c, kD)
 
@@ -878,17 +916,26 @@ def multi_layer_transient(solution_name=None, parcel_data=None, tdata=None,  che
         c  = np.array([props['c_drain'], props['c_CB'], c_bot])
         hdr = props['AHN'] - props['d_drain']
 
-        wo  = props['wo_ditch']
-        wi  = props['wi_ditch']
-        assert wi >= wo, AssertionError("wi must >= wo, [parcel {}]".format(ip))
+        S  = np.array([props['sy'], props[ 'S2']])
+        kh = np.array([props['kh'], props['kh2']])
+        kv = np.array([props['kv'], props['kv2']])
+        D  = np.array([props['D1'], props[ 'D2']])
+        kD = kh * D
+
+        if use_w_not_c:
+            wo  = props['wo_ditch']
+            wi  = props['wi_ditch']
+            assert wi >= wo, AssertionError("wi must >= wo, [parcel {}]".format(ip))
+        else:
+            assert props['ci_ditch'] >= props['co_ditch'],\
+                    AssertionError("ci must >= co, [parcel {}]".format(ip))
+            omega = np.array([props['ditch_omega1'], props['ditch_omega2']])[:, np.newaxis]
+            wpp = 2 / np.pi / np.sqrt(kh * kv)  * np.log(D * np.sqrt(kh / kv) / omega)
+            wo  = props['co_ditch'] * D / omega + wpp
+            wi  = props['ci_ditch'] * D / omega + wpp
 
         wghb = wi
         wriv = np.inf if wi < wo + wtol else wi * wo / (wi - wo)
-
-        S  = np.array([props['sy'], props[ 'S2']])
-        kh = np.array([props['kh'], props['kh2']])
-        D  = np.array([props['D1'], props[ 'D2']])
-        kD = kh * D
 
         Am2, Am1, A1, A2 = sysmat(c, kD)
 

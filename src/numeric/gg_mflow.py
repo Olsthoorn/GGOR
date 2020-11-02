@@ -587,7 +587,7 @@ def set_boundary(what=None, parcel_data=None, tdata=None, gr=None, IBOUND=None,
         # Ditch entry resistance, first column both layers.
         pdata = parcel_data
         if use_w_not_c:
-            wi = np.vstack((pdata['wi_ditch'], pdata['wi_ditch']))
+            wi = np.vstack((pdata['wi_ditch'], pdata['wi_ditch2']))
         else: # Use the real ditch resistance, dicth circumference
             wi = np.vstack((pdata['ci_ditch'] * pdata['D1'] / pdata['ditch_omega1'],
                             pdata['ci_ditch'] * pdata['D2'] / pdata['ditch_omega2']))
@@ -622,8 +622,8 @@ def set_boundary(what=None, parcel_data=None, tdata=None, gr=None, IBOUND=None,
         pdata=parcel_data
         if use_w_not_c:
             # Use analytic ditch resistance with layer thickness and no partial penetration
-            wi = np.vstack((pdata['wi_ditch'], pdata['wi_ditch'])) # Same value for both layers
-            wo = np.vstack((pdata['wo_ditch'], pdata['wo_ditch'])) # Same value for both layers
+            wi = np.vstack((pdata['wi_ditch'], pdata['wi_ditch2'])) # Same value for both layers
+            wo = np.vstack((pdata['wo_ditch'], pdata['wo_ditch2'])) # Same value for both layers
             assert np.all(wi >= wo), "ditch entry resist. must be larger or equal to the ditch exit resistance!"
 
             dw = wi - wo; eps=1e-10; dw[dw==0] = eps # prevent (handle division by zero)
