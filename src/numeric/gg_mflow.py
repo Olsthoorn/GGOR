@@ -869,7 +869,7 @@ def compute_and_set_wpp(data=None):
 
     data['wpp2'] = 2 /  (np.pi * np.sqrt(data['kh2'] * data['kv2'])) * np.log((
         data['D2'] * np.sqrt(data['kh2'] / data['kv2']))/(0.5 * data['ditch_omega2']))
-    data['wpp2'][np.isnan(data['wpp2'])] = np.inf
+    data.loc[np.isnan(data['wpp2']), 'wpp2'] = np.inf
     return
 
 
@@ -1015,7 +1015,7 @@ class Heads_obj:
     def plot(self, ax=None, tdata=None, parcel_data=None,
                    selection=[0, 1, 2, 3, 4],
                    titles=None, xlabel='time', ylabels=['m', 'm'],
-                   size_inches=(14, 8), loc='best',  **kwargs):
+                   size_inches=(14, 8), loc='best', GXG=True,  **kwargs):
         """Plot the running heads in both layers.
 
         Parameters
@@ -1039,6 +1039,8 @@ class Heads_obj:
             Width and height om image in inches if image is generated and ax is None.
         loc: str (default 'best')
             location to put the legend
+        GXG: boolean
+            whether or not to plot the GXG also.
         kwargs: Dict
             Extra parameters passed to newfig or newfig2 if present.
 
@@ -1080,7 +1082,8 @@ class Heads_obj:
                            label='parcel {}, zdr'.format(isel))
             a.legend(loc=loc, fontsize='xx-small')
 
-            self.GXG.plot(ax[0], selection=selection)
+            if GXG:
+                self.GXG.plot(ax[0], selection=selection)
 
         return ax
 
@@ -1408,7 +1411,7 @@ class Watbal_obj:
                         selection.start, selection.stop, selection.step)
         else:
             ttl = ' Taken over parcels [{}]'.format(
-                ', '.join([s for s in selection]))
+                ', '.join(['{}'.format(s) for s in selection]))
 
         if ax is None:
             ax = newfig2(titles=(
@@ -1458,6 +1461,7 @@ def run_modflow(dirs=None, parcel_data=None, tdata=None, laycbd=(1, 0), dx=1.,
         par = set_spatial_arrays(parcel_data=parcel_data, gr=gr)
 
         spd  = set_stress_period_data(tdata=tdata)
+
 
         bdd  = set_boundary_data(parcel_data=parcel_data,
                                      tdata=tdata,

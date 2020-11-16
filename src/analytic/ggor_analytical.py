@@ -455,8 +455,8 @@ def single_Layer_transient(solution_name=None, parcel_data=None, tdata=None,
 
         if use_w_not_c:
             # both layers the same wo and wi
-            wo1, wo2 = props['wo_ditch'], props['wo_ditch']
-            wi1, wi2 = props['w1_ditch'], props['wi_ditch']
+            wo1, wo2 = props['wo_ditch'], props['wo_ditch2']
+            wi1, wi2 = props['wi_ditch'], props['wi_ditch2']
         else:
             co, ci = props['co_ditch'], props['ci_ditch']
             d_ditch, b_ditch = props['d_ditch'], props['b_ditch']
@@ -467,7 +467,7 @@ def single_Layer_transient(solution_name=None, parcel_data=None, tdata=None,
         phi, D1, D_CB, D2  = props['phi'], props['D1'], props['D_CB'], props['D2']
 
         lam = kh1 * D1 * c
-        T = mu * c
+
 
         tdata['hLR'] = props['h_winter']
         tdata.loc[tdata['summer'], 'hLR'] = props['h_summer']
@@ -518,6 +518,8 @@ def single_Layer_transient(solution_name=None, parcel_data=None, tdata=None,
             w2 = wi2 if hlr > h1[it] else wo2
             if solution_name == 'L1q':
                 phi = update_phi(q_up=q_up, ht=h0[it], hlr=hlr, c=c, w=w2, b=b, D=D2)
+
+            T = mu / (1/c + 1/w1 * D1 / b)
 
             qroff = 0.
             B = get_B(N=N, qdr=qroff, phi=phi, hlr=hlr, c=c, Lam=Lam)
@@ -696,8 +698,8 @@ def single_layer_steady(solution_name, props=None, tdata=None, dx=1.0, verbose=F
             hx = phi + N * c - (N * c - (tdata['hLR'] - phi)
                             ) * Lamb * (b / lam) * np.cosh(x / lam) / np.sinh(b / lam)
             if verbose:
-                print('iter={}, np.max(np.abs(hx - hk_prev)) = {}'.format(iter, np.max(np.abs(hx - hx_prev))))
-            if np.mean(np.abs(hx - hx_prev) < htol):
+                print('iter={}, std(hx - hk_prev) = {}'.format(iter, np.std(hx - hx_prev)))
+            if np.std(hx - hx_prev) < htol:
                 hx = np.vstack((hx, phi * np.ones_like(x)))
                 success = True
                 break
@@ -923,9 +925,9 @@ def multi_layer_transient(solution_name=None, parcel_data=None, tdata=None,  che
         kD = kh * D
 
         if use_w_not_c:
-            wo  = props['wo_ditch']
-            wi  = props['wi_ditch']
-            assert wi >= wo, AssertionError("wi must >= wo, [parcel {}]".format(ip))
+            wo  = np.array([props['wo_ditch'], props['wo_ditch2']])[:, np.newaxis]
+            wi  = np.array([props['wi_ditch'], props['wi_ditch2']])[:, np.newaxis]
+            assert np.all(wi >= wo), AssertionError("wi must >= wo, [parcel {}]".format(ip))
         else:
             assert props['ci_ditch'] >= props['co_ditch'],\
                     AssertionError("ci must >= co, [parcel {}]".format(ip))
@@ -1099,7 +1101,7 @@ class HDS_obj:
 
     def plot(self, titles=['top', 'bottom'], xlabel='time',
              ylabels=['head [m]', 'head [m]'], sharex=True, sharey=True,
-             selection=None, size_inches=(14, 8)):
+             selection=None, size_inches=(14, 8), GXG=False):
         """Plot the heads.
 
         Parameters
@@ -1127,7 +1129,8 @@ class HDS_obj:
         plot_hydrological_year_boundaries(ax[1], tindex=self.tindex, color='darkgray')
 
         # plot GXG on graphs of top aquifer only.
-        self.GXG.plot(ax=ax[0], selection=selection, colors=clrs)
+        if GXG:
+            self.GXG.plot(ax=ax[0], selection=selection, colors=clrs)
 
         return ax
 
@@ -1369,8 +1372,7 @@ class CBC_obj:
         return ax
 
     def get_budget(self, selection=None):
-        """Return water budget a pd.DataFrame.
-        """
+        """Return water budget a pd.DataFrame."""
         if selection is None:
             selection = slice(0, self.nparcel, 1)
         elif isinstance(selection, int):
@@ -1496,6 +1498,7 @@ class Solution:
         The head at the beginning of the first time step is assumed
         equal to that of ditches during the first time step.
         """
+        pdb.set_trace()
         self.tdata, self.HDS, self.CBC = single_Layer_transient(
                 solution_name=self.name,
                 parcel_data = self.parcel_data,
@@ -1505,7 +1508,7 @@ class Solution:
 
 
     def plot_heads(self, case=None, xlabel='time', ylabels=['m', 'm'],
-                   selection=None, size_inches=(14, 8), **kwargs):
+                   selection=None, size_inches=(14, 8), GXG=False, **kwargs):
         """Plot results of 2 -layer analytical simulation.
 
         Parameters
@@ -1520,6 +1523,8 @@ class Solution:
             of which parcels to plot the heads (max 5)
         size_inches: 2 tuple (w, h)
             Size of each of the two figures.
+        GXG: boolean
+            tells whether or not the GXG data are to be plotted.
         kwargs: dict
             Additional paramters to pass.
 
@@ -1538,7 +1543,7 @@ class Solution:
         titles = [f'({self.name}) ' + title for title in titles]
 
         ax = self.HDS.plot(titles, xlabel, ylabels, selection=selection,
-                      size_inches=size_inches, **kwargs)
+                      size_inches=size_inches, GXG=GXG, **kwargs)
 
         return ax
 
@@ -1773,27 +1778,28 @@ if __name__ == '__main__':
                                    GGOR_home=GGOR_home, case=case).data
 
    #%%
-    parcel_data = parcel_data.iloc[:5]
+    parcel_data = parcel_data.iloc[:4]
     obj = None
+    GXG = False
     scenario = 4
     if scenario == 1: # analytic with given head in regional aquifer
         l1f = L1f(dirs=dirs, parcel_data=parcel_data)
         l1f.sim(tdata=tdata, use_w_not_c=use_w_not_c)
-        l1f.plot_heads()
+        l1f.plot_heads(GXG=GXG)
         l1f.plot_cbc()
         budget = l1f.CBC.get_budget()
         obj = L1f
     if scenario == 2: # analytic with given seepage from regional aquifer
         l1q = L1q(dirs=dirs, parcel_data=parcel_data)
         l1q.sim(tdata=tdata, use_w_not_c=use_w_not_c)
-        l1q.plot_heads()
+        l1q.plot_heads(GXG=GXG)
         l1q.plot_cbc()
         budget = l1q.CBC.get_budget()
         obj = L1q
     if scenario == 3: # Analytic two layers, with ditches in both aquifers
         l2 = L2(diss=dirs, parcel_data=parcel_data)
         l2.sim(tdata=tdata, use_w_not_c=use_w_not_c)
-        l2.plot_heads()
+        l2.plot_heads(GXG=GXG)
         l2.plot_cbc()
         budget = l2.CBC.get_budget()
         obj = L2
@@ -1812,7 +1818,7 @@ if __name__ == '__main__':
                parcel_data=parcel_data,
                selection=selection,
                titles=titles,
-               size_inches=(14, 8))
+               size_inches=(14, 8), GXG=GXG)
         ax = watbal.plot(parcel_data=parcel_data,
                          tdata=tdata,
                          sharey=True)
